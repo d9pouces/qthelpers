@@ -33,9 +33,9 @@ class BaseMainWindow(QtGui.QMainWindow):
                     continue
                 created_action_keys.add(menu_action.uid)
                 menu_action.create(self, defined_qmenus[menu_action.menu])
-        self.setUnifiedTitleAndToolBarOnMac(True)
 
         # retrieve toolbar actions from the whole class hierarchy
+        self.setUnifiedTitleAndToolBarOnMac(True)
         defined_qtoolbars = {}
         created_action_keys = set()
         for qualname in self.__class__.__mro__:

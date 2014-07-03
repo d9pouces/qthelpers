@@ -7,7 +7,7 @@ from PySide import QtTest, QtCore
 from qthelpers.fields import CharField, IntegerField, FloatField, BooleanField
 from qthelpers.forms import Form, SimpleFormDialog
 from qthelpers.menus import menu_item, MenuAction
-from qthelpers.application import BaseApplication
+from qthelpers.application import BaseApplication, application
 from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow
 
@@ -19,6 +19,16 @@ class SampleApplication(BaseApplication):
     application_name = 'Sample Application'
     application_version = '0.1'
     application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+
+    @menu_item
+    def test_systray(self):
+        print('test_systray')
+
+    def systray_message_clicked(self):
+        print('systray message clicked')
+
+    def systray_activated(self, reason):
+        print('systray activated', reason)
 
 
 class SampleForm(Form):
@@ -60,7 +70,7 @@ class SampleBaseWindows(BaseMainWindow):
 
     @staticmethod
     def test_2():
-        print('222')
+        application.systray.showMessage('Systray message title', 'Systray message')
 
     def central_widget(self):
         return SampleForm()

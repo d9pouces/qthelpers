@@ -1,6 +1,6 @@
 # coding=utf-8
 import functools
-from PySide import QtGui
+from PySide import QtGui, QtCore
 from qthelpers.shortcuts import get_icon
 
 __author__ = 'flanker'
@@ -41,30 +41,32 @@ class MenuAction(object):
                 uid = str(method_name)
         self.uid = uid
 
-    def create(self, window: QtGui.QMainWindow, parent: QtGui.QMenu):
+    def create(self, window: QtGui.QMainWindow, parent_menu: QtGui.QMenu):
         if self.disabled:
             return
         if callable(self.method_name):
             method = self.method_name
         else:
             method = getattr(window, self.method_name)
+        parent_obj = window if isinstance(window, QtCore.QObject) else None
+
         if self.sep:
-            parent.addSeparator()
+            parent_menu.addSeparator()
         if self.submenu:
-            menu = QtGui.QMenu(self.verbose_name, window)
+            menu = QtGui.QMenu(self.verbose_name, parent_obj)
             if self.icon:
-                action = parent.addMenu(get_icon(self.icon), menu)
+                action = parent_menu.addMenu(get_icon(self.icon), menu)
             else:
-                action = parent.addMenu(menu)
-            action.hovered.connect(functools.partial(self.fill_submenu, window, menu, method))
+                action = parent_menu.addMenu(menu)
+            action.hovered.connect(functools.partial(self.fill_submenu, parent_obj, menu, method))
         else:
             if self.icon:
-                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, window)
+                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, parent_obj)
             else:
-                action = QtGui.QAction(self.verbose_name, window)
+                action = QtGui.QAction(self.verbose_name, parent_obj)
             # noinspection PyUnresolvedReferences
             action.triggered.connect(method)
-            parent.addAction(action)
+            parent_menu.addAction(action)
         if self.shortcut:
             action.setShortcut(self.shortcut)
         if self.help_text:
