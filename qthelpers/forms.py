@@ -51,7 +51,7 @@ class TabbedForm(QtGui.QWidget):
     pass
 
 
-class SimpleDialog(FieldGroup, QtGui.QDialog):
+class SimpleFormDialog(FieldGroup, QtGui.QDialog):
     verbose_name = None
     description = None
     text_confirm = _('Yes')
@@ -81,15 +81,16 @@ class SimpleDialog(FieldGroup, QtGui.QDialog):
             sub_layout.addWidget(widget, row_index, 1)
 
         widgets.append(sub_layout)
-        buttons = []
+        self._buttons = []
         if self.text_confirm:
-            buttons.append(create_button(self.text_confirm, connect=self.accept, min_size=True))
+            self._buttons.append(create_button(self.text_confirm, connect=self.accept, min_size=True))
         if self.text_cancel:
-            buttons.append(create_button(self.text_cancel, connect=self.reject, min_size=True))
-        if buttons:
-            widgets.append(h_layout(*buttons))
+            self._buttons.append(create_button(self.text_cancel, connect=self.reject, min_size=True))
+        if self._buttons:
+            widgets.append(h_layout(*self._buttons))
 
         self.setLayout(v_layout(*widgets))
+        self.raise_()
 
     @classmethod
     def get_values(cls, initial=None):
@@ -103,7 +104,7 @@ class SimpleDialog(FieldGroup, QtGui.QDialog):
     def accept(self):
         if not self.is_valid():
             return
-        return super().accept()
+        return QtGui.QDialog.accept(self)
 
     def is_valid(self):
         valid = True

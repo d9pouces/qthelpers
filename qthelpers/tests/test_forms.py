@@ -1,14 +1,23 @@
 # coding=utf-8
-from PySide import QtGui
+import random
 import unittest
+
+from PySide import QtTest, QtCore
+
 from qthelpers.fields import CharField, IntegerField, FloatField, BooleanField
-from qthelpers.forms import Form, SimpleDialog
-from qthelpers.qtapps import BaseApplication
+from qthelpers.forms import Form, SimpleFormDialog
+from qthelpers.menus import menu_item, MenuAction
+from qthelpers.application import BaseApplication
+from qthelpers.windows import BaseMainWindow
+
 
 __author__ = 'flanker'
 
 
-application = BaseApplication([])
+class SampleApplication(BaseApplication):
+    application_name = 'Sample Application'
+    application_version = '0.1'
+    application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
 
 class SampleForm(Form):
@@ -19,7 +28,7 @@ class SampleForm(Form):
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
 
 
-class SampleDialog(SimpleDialog):
+class SampleFormDialog(SimpleFormDialog):
     verbose_name = 'My sample dialog'
     description = 'A short description'
     str_value = CharField(default='my_str', verbose_name='String value')
@@ -29,18 +38,59 @@ class SampleDialog(SimpleDialog):
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
 
 
+class SampleBaseWindows(BaseMainWindow):
+    window_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+
+    @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
+    def test_menu_1(self):
+        print('test_menu_1')
+
+    @menu_item(menu='TestMenu', verbose_name='TestSubmenu', submenu=True, sep=True)
+    def test_menu_2(self):
+        return [
+            MenuAction(self.test_1, verbose_name='Submenu %d' % random.randint(1, 65536), menu=''),
+            MenuAction(self.test_2, verbose_name='Submenu %d' % random.randint(1, 65536), menu=''),
+        ]
+
+    @staticmethod
+    def test_1():
+        print('111')
+
+    @staticmethod
+    def test_2():
+        print('222')
+
+
 class FormTest(unittest.TestCase):
-    def test_1(self):
+    @classmethod
+    def setUpClass(cls):
+        cls.application = SampleApplication([])
+
+    def test_forms(self):
+        pass
         form = SampleForm()
         form.show()
+        form.close()
 
-        SampleDialog.get_values(initial={'int_value': 32})
+        dialog = SampleFormDialog(initial={'int_value': 32})
+        dialog.show()
+        QtTest.QTest.mouseClick(dialog._buttons[0], QtCore.Qt.LeftButton)
+        self.assertEqual(dialog._values, {'float_value': 10.0, 'bool_value': True, 'float_value_none': 10.0,
+                                          'int_value': 32, 'str_value': 'my_str'})
 
-        button = QtGui.QPushButton('Exit')
-        # noinspection PyUnresolvedReferences
-        button.clicked.connect(application.exit)
-        button.show()
-        application.exec_()
+        dialog = SampleFormDialog(initial={'int_value': 32})
+        dialog.show()
+        QtTest.QTest.mouseClick(dialog._buttons[1], QtCore.Qt.LeftButton)
+        self.assertEqual(dialog._values, {'float_value': 10.0, 'bool_value': True, 'float_value_none': 10.0,
+                                          'int_value': 32, 'str_value': 'my_str'})
+        window = SampleBaseWindows()
+        # print(application())
+        # print('window_1')
+        window.show()
+        # window.close()
+        self.application.exec_()
+        self.application.quit()
+
 
 if __name__ == '__main__':
     import doctest

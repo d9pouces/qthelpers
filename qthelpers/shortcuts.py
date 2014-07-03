@@ -1,5 +1,7 @@
 # coding=utf-8
 from PySide import QtGui
+import pkg_resources
+from qthelpers.preferences import preferences
 
 __author__ = 'flanker'
 
@@ -25,8 +27,23 @@ def h_layout(*args):
     return __generic_layout(layout, args)
 
 
-def create_button(legend: str='', icon=None, min_size: bool=False, connect=None, help_text: str=None, flat: bool=False):
-    if icon:
+def get_icon(icon_name):
+    modname, sep, filename = icon_name.partition(':')
+    theme_key = preferences.selected_theme_key
+    if theme_key is not None:
+        filename = filename % {'THEME': preferences()[theme_key]}
+    return QtGui.QIcon(pkg_resources.resource_filename(modname, filename))
+
+
+def get_theme_icon(name, icon_name):
+    return QtGui.QIcon.fromTheme(name, get_icon(icon_name))
+
+
+def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=None, help_text: str=None,
+                  flat: bool=False):
+    if isinstance(icon, str):
+        button = QtGui.QPushButton(get_icon(icon), legend)
+    elif icon:
         button = QtGui.QPushButton(icon, legend)
     else:
         button = QtGui.QPushButton(legend)
