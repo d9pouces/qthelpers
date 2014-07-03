@@ -19,6 +19,7 @@ class SampleApplication(BaseApplication):
     application_name = 'Sample Application'
     application_version = '0.1'
     application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item
     def test_systray(self):

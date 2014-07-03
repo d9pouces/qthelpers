@@ -1,9 +1,14 @@
 # coding=utf-8
-from PySide import QtGui, QtCore
+import itertools
+
+from PySide import QtGui
+
+from qthelpers.application import application
 from qthelpers.menus import registered_menu_actions, registered_menus
 from qthelpers.shortcuts import get_icon
 from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions
 from qthelpers.translation import ugettext as _
+
 
 __author__ = 'flanker'
 
@@ -11,11 +16,13 @@ __author__ = 'flanker'
 class BaseMainWindow(QtGui.QMainWindow):
     window_icon = None
     verbose_name = _('Main application window')
+    _window_counter = itertools.count()
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
 
-        self.setCentralWidget(self.central_widget())
+        self._window_id = next(BaseMainWindow._window_counter)
+        application.windows[self._window_counter] = self
 
         # retrieve menus and associated actions from the whole class hierarchy
         menubar = self.menuBar()
@@ -59,10 +66,17 @@ class BaseMainWindow(QtGui.QMainWindow):
         self.setWindowTitle(self.verbose_name)
         if self.window_icon:
             self.setWindowIcon(get_icon(self.window_icon))
+
+        self.setCentralWidget(self.central_widget())
+
         self.raise_()
 
     def central_widget(self):
         raise NotImplementedError
+
+    def close(self, *args, **kwargs):
+        del application.windows[self._window_id]
+        super().close()
 
 
 if __name__ == '__main__':

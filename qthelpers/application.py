@@ -1,7 +1,8 @@
-# coding=utf-8
-from PySide import QtGui
-from qthelpers.menus import registered_menus, registered_menu_actions, menu_item
+#coding=utf-8
 
+from PySide import QtGui
+
+from qthelpers.menus import registered_menus, registered_menu_actions
 from qthelpers.preferences import Preferences, GlobalObject, global_dict
 from qthelpers.shortcuts import get_icon
 
@@ -17,13 +18,16 @@ class BaseApplication(Preferences):
     application_icon = None
     application_version = None
     organization_domain = None
-    use_systemtray_icon = True
+    systemtray_icon = True
+    windows = {}
 
     def __init__(self, args: list):
         super().__init__()
+        self.load()  # load preferences
+
+        # initialize QtApplication
         self.application = QtGui.QApplication(args)
         global_dict[application_key] = self
-        super().load()  # load preferences
 
         # set some global stuff
         if self.application_icon:
@@ -32,8 +36,9 @@ class BaseApplication(Preferences):
             self.application.setApplicationName(self.application_name)
         if self.application_version:
             self.application.setApplicationVersion(self.application_version)
-        if self.use_systemtray_icon and self.application_icon:
-            self.systray = QtGui.QSystemTrayIcon(get_icon(self.application_icon))
+        if self.systemtray_icon:
+            self._parent_obj = QtGui.QWidget()
+            self.systray = QtGui.QSystemTrayIcon(get_icon(self.systemtray_icon), self._parent_obj)
             self.systray.setVisible(True)
             self.systray.show()
 
@@ -46,23 +51,25 @@ class BaseApplication(Preferences):
                     continue
                 for menu_action in registered_menu_actions[cls_name]:
                     if menu is None:
-                        menu = QtGui.QMenu(self.application_name)
+                        menu = QtGui.QMenu(self.application_name, self._parent_obj)
                     if menu_action.uid in created_action_keys:  # skip overriden actions (there are already created)
                         continue
                     created_action_keys.add(menu_action.uid)
-                    menu_action.create(self, menu)
+                    menu_action.create(self, menu, parent_obj=self._parent_obj)
             if menu is not None:
                 self.systray.setContextMenu(menu)
+            # noinspection PyUnresolvedReferences
             self.systray.activated.connect(self.systray_activated)
+            # noinspection PyUnresolvedReferences
             self.systray.messageClicked.connect(self.systray_message_clicked)
 
     def exec_(self):
         self.application.exec_()
-        super().save()  # save preferences
+        self.save()  # save preferences
 
     def quit(self, *args, **kwargs):
         self.application.quit(*args, **kwargs)
-        super().save()  # save preferences
+        self.save()  # save preferences
         global_dict[application_key] = None
 
     def systray_message_clicked(self):
@@ -70,7 +77,6 @@ class BaseApplication(Preferences):
 
     def systray_activated(self, reason):
         pass
-
 
 if __name__ == '__main__':
     import doctest

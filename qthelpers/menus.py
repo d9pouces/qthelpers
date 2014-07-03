@@ -41,14 +41,14 @@ class MenuAction(object):
                 uid = str(method_name)
         self.uid = uid
 
-    def create(self, window: QtGui.QMainWindow, parent_menu: QtGui.QMenu):
+    def create(self, window: QtGui.QMainWindow, parent_menu: QtGui.QMenu, parent_obj: QtCore.QObject=None):
         if self.disabled:
             return
         if callable(self.method_name):
             method = self.method_name
         else:
             method = getattr(window, self.method_name)
-        parent_obj = window if isinstance(window, QtCore.QObject) else None
+        parent_obj = window if isinstance(window, QtCore.QObject) else parent_obj
 
         if self.sep:
             parent_menu.addSeparator()
