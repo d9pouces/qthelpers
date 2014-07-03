@@ -8,6 +8,7 @@ from qthelpers.fields import CharField, IntegerField, FloatField, BooleanField
 from qthelpers.forms import Form, SimpleFormDialog
 from qthelpers.menus import menu_item, MenuAction
 from qthelpers.application import BaseApplication
+from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow
 
 
@@ -42,6 +43,7 @@ class SampleBaseWindows(BaseMainWindow):
     window_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
+    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
     def test_menu_1(self):
         print('test_menu_1')
 
@@ -59,6 +61,9 @@ class SampleBaseWindows(BaseMainWindow):
     @staticmethod
     def test_2():
         print('222')
+
+    def central_widget(self):
+        return SampleForm()
 
 
 class FormTest(unittest.TestCase):
