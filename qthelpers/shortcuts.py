@@ -72,7 +72,28 @@ def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=
 
 
 def warning(title, message, only_ok=False):
-    pass
+    other_button = QtGui.QMessageBox.NoButton if only_ok else QtGui.QMessageBox.Cancel
+    # noinspection PyTypeChecker
+    return QtGui.QMessageBox.warning(None, title, message, QtGui.QMessageBox.Ok, other_button) == QtGui.QMessageBox.Ok
+
+
+def question(title, message, only_ok=False):
+    other_button = QtGui.QMessageBox.NoButton if only_ok else QtGui.QMessageBox.Cancel
+    # noinspection PyTypeChecker
+    return QtGui.QMessageBox.question(None, title, message, QtGui.QMessageBox.Ok, other_button) == QtGui.QMessageBox.Ok
+
+
+def critical(title, message, only_ok=False):
+    other_button = QtGui.QMessageBox.NoButton if only_ok else QtGui.QMessageBox.Cancel
+    # noinspection PyTypeChecker
+    return QtGui.QMessageBox.critical(None, title, message, QtGui.QMessageBox.Ok, other_button) == QtGui.QMessageBox.Ok
+
+
+def information(title, message, only_ok=False):
+    other_button = QtGui.QMessageBox.NoButton if only_ok else QtGui.QMessageBox.Cancel
+    # noinspection PyTypeChecker
+    return QtGui.QMessageBox.information(None, title, message, QtGui.QMessageBox.Ok, other_button) == \
+        QtGui.QMessageBox.Ok
 
 
 if __name__ == '__main__':

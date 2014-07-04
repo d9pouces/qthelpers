@@ -2,8 +2,10 @@
 import functools
 import itertools
 import os
+import threading
 
 from PySide import QtGui, QtCore
+import time
 
 from qthelpers.application import application
 from qthelpers.menus import registered_menu_actions, registered_menus, menu_item, MenuAction
@@ -78,9 +80,9 @@ class BaseMainWindow(QtGui.QMainWindow):
     def central_widget(self):
         raise NotImplementedError
 
-    def close(self, *args, **kwargs):
+    def closeEvent(self, event):
         del application.windows[self._window_id]
-        super().close()
+        super().closeEvent(event)
 
     # noinspection PyMethodMayBeStatic
     def generic_slot(self, arguments: list):
@@ -101,10 +103,46 @@ class SingleDocumentWindow(BaseMainWindow):
         super().__init__()
         self.current_document_filename = None
         self.current_document_is_modified = False  # your responsibility!
+        self.base_stop_threads = False
+        self.base_threads = []
         if filename:
             self.base_open_document(filename)
         else:
             self.base_new_document()
+
+        auto_save = threading.Thread(target=self.base_auto_save_thread, name='auto_save')
+        auto_save.start()
+        self.base_threads.append(auto_save)
+
+    def closeEvent(self, event: QtCore.QEvent):
+        if self.current_document_is_modified:
+            ans = warning(_('The document has been modified'),
+                          _('The current document has been modified. Any change will be lost if you close it. '
+                            'Do you really want to continue?'))
+            if not ans:
+                event.ignore()
+                return
+        self.unload_document()
+        super().closeEvent(event)
+        self.base_stop_threads = True
+        for thread in self.base_threads:
+            thread.join()
+
+    def base_auto_save_thread(self):
+        while True:
+            interval = application.GlobalInfos.auto_save_interval
+            if interval <= 0:
+                for i in range(10):
+                    if self.base_stop_threads:
+                        return
+                    time.sleep(1)
+            else:
+                for i in range(interval):
+                    if self.base_stop_threads:
+                        return
+                    time.sleep(1)
+                if self.current_document_filename:
+                    self.generic_signal.emit([self.base_save_document])
 
     @menu_item(verbose_name=_('New document'), menu=_('File'), shortcut='Ctrl+N')
     def base_new_document(self):
@@ -148,13 +186,6 @@ class SingleDocumentWindow(BaseMainWindow):
 
     @menu_item(verbose_name=_('Close document'), menu=_('File'), sep=True, shortcut='Ctrl+W')
     def base_close_document(self):
-        if self.current_document_is_modified:
-            ans = warning(_('The document has been modified'),
-                          _('The currently open document has been modified. Any change will be lost if you close it.'
-                            'Do you want to continue?'))
-            if not ans:
-                return
-        self.unload_document()
         self.close()
 
     @menu_item(verbose_name=_('Save document'), menu=_('File'), shortcut='Ctrl+S')

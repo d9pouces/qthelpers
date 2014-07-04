@@ -88,7 +88,7 @@ class SingleDocumentApplication(BaseApplication):
         last_open_folder = fields.FilepathField(default=os.path.expanduser('~'))
         last_save_folder = fields.FilepathField(default=os.path.expanduser('~'))
         last_documents = fields.CharChoiceField(default=[])
-        auto_save_interval = fields.IntegerField(default=0)
+        auto_save_interval = fields.IntegerField(default=0, min_value=0)
 
 
 if __name__ == '__main__':
