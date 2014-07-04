@@ -236,11 +236,11 @@ class FloatField(IntegerField):
 
 class BooleanField(Field):
 
-    def serialize(self, value: bool) -> str:
-        return 'true' if value else 'false'
+    def serialize(self, value: bool) -> bool:
+        return bool(value)
 
-    def deserialize(self, value: str) -> bool:
-        return False if value == 'false' else True
+    def deserialize(self, value: bool) -> bool:
+        return bool(value)
 
     def get_widget(self, field_group):
         editor = QtGui.QCheckBox()
@@ -262,6 +262,42 @@ class BooleanField(Field):
         if not isinstance(value, bool):
             raise InvalidValueException(_('Value must be a boolean'))
 
+
+class FilepathField(CharField):
+    pass
+
+
+class CharChoiceField(Field):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
+        if default is None:
+            default = []
+        super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
+                         default=default)
+    def serialize(self, value: list) -> list:
+        return [(str(x), str(y)) for (x, y) in value]
+
+    def deserialize(self, value: list) -> list:
+        return value
+
+    def get_widget(self, field_group):
+        pass
+
+    def get_widget_value(self, widget):
+        pass
+
+    def set_widget_value(self, widget, value):
+        pass
+
+    def set_widget_valid(self, widget, valid: bool, msg: str):
+        pass
+
+    @staticmethod
+    def check_base_type(value):
+        if not isinstance(value, list) or not isinstance(value, tuple):
+            raise InvalidValueException(_('Value must be a list or tuple of strings'))
+        for x in value:
+            if not isinstance(x, str):
+                raise InvalidValueException(_('Value must be a list or tuple of strings'))
 
 class FieldGroup(object):
     def __init__(self, initial=None, index=None):

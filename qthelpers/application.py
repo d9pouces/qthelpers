@@ -1,9 +1,11 @@
 #coding=utf-8
+import os
 
 from PySide import QtGui
+from qthelpers import fields
 
 from qthelpers.menus import registered_menus, registered_menu_actions
-from qthelpers.preferences import Preferences, GlobalObject, global_dict
+from qthelpers.preferences import Preferences, GlobalObject, global_dict, Section
 from qthelpers.shortcuts import get_icon
 
 
@@ -17,7 +19,6 @@ class BaseApplication(Preferences):
     systray = None
     application_icon = None
     application_version = None
-    organization_domain = None
     systemtray_icon = True
     windows = {}
 
@@ -63,6 +64,9 @@ class BaseApplication(Preferences):
             # noinspection PyUnresolvedReferences
             self.systray.messageClicked.connect(self.systray_message_clicked)
 
+            # noinspection PyUnresolvedReferences
+            self.application.lastWindowClosed.connect(self.save)
+
     def exec_(self):
         self.application.exec_()
         self.save()  # save preferences
@@ -77,6 +81,14 @@ class BaseApplication(Preferences):
 
     def systray_activated(self, reason):
         pass
+
+
+class SingleDocumentApplication(BaseApplication):
+    class GlobalInfos(Section):
+        last_open_folder = fields.FilepathField(default=os.path.expanduser('~'))
+        last_save_folder = fields.FilepathField(default=os.path.expanduser('~'))
+        last_documents = fields.CharChoiceField()
+
 
 if __name__ == '__main__':
     import doctest

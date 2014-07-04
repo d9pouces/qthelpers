@@ -1,24 +1,24 @@
 import argparse
 import random
-import sys
-from qthelpers.application import application, BaseApplication
+
+from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField
 from qthelpers.forms import SimpleFormDialog, Form
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
-from qthelpers.windows import BaseMainWindow
+from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
 
 
 __author__ = 'flanker'
 
 
-class SampleApplication(BaseApplication):
+class SampleApplication(SingleDocumentApplication):
     application_name = 'Sample Application'
     application_version = '0.1'
     application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
     systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
-    @menu_item
+    @menu_item(submenu=False)
     def test_systray(self):
         print('test_systray')
 
@@ -74,6 +74,48 @@ class SampleBaseWindows(BaseMainWindow):
         return SampleForm()
 
 
+class SampleDocumentWindow(SingleDocumentWindow):
+    def is_valid_document(self, filename):
+        """ Check if filename is a valid document
+        :return:
+        """
+        return True
+
+    def load_document(self):
+        """ Load the document self.current_document_filename
+        self.current_document_filename is set to None, self.current_document_is_modified is set to False
+        :return:
+        """
+        return True
+
+    def unload_document(self):
+        """ Unload the current loaded document (if it exists)
+        :return:
+        """
+        return True
+
+    def create_document(self):
+        """ Create a new blank document
+        self.current_document_filename is set to None, self.current_document_is_modified is set to False
+        :return:
+        """
+        pass
+
+    def save_document(self):
+        """ Save the current loaded document (if it exists) into self.current_document_filename
+        It's your responsibility to update self.current_document_is_modified to True
+        :return:
+        """
+        return True
+
+    @menu_item(menu='TestMenu', verbose_name='TestSubmenu', submenu=True, sep=True)
+    def test_menu_2(self):
+        self.current_document_is_modified = True
+
+    def central_widget(self):
+        return SampleForm()
+
+
 def main():
     argument_parser = argparse.ArgumentParser('qtexample', description='QtHelpers example')
     argument_parser.add_argument('--style', action='store', default=None,
@@ -100,4 +142,6 @@ def main():
 
     window = SampleBaseWindows()
     window.show()
+    window2 = SampleDocumentWindow()
+    window2.show()
     application.exec_()

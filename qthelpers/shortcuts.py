@@ -1,7 +1,9 @@
 # coding=utf-8
 from PySide import QtGui
 import pkg_resources
+
 from qthelpers.preferences import preferences
+
 
 __author__ = 'flanker'
 
@@ -67,6 +69,10 @@ def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=
         # noinspection PyUnresolvedReferences
         button.clicked.connect(connect)
     return button
+
+
+def warning(title, message, only_ok=False):
+    pass
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 QtExample
 =========
 
+    * logging
 
     * Application 1 document par fenêtre, avec
         * liste des derniers documents ouverts
