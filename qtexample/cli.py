@@ -108,9 +108,9 @@ class SampleDocumentWindow(SingleDocumentWindow):
         """
         return True
 
-    @menu_item(menu='TestMenu', verbose_name='TestSubmenu', submenu=True, sep=True)
+    @menu_item(menu='TestMenu', verbose_name='TestSubmenu', sep=True)
     def test_menu_2(self):
-        self.current_document_is_modified = True
+        self.base_mark_document_as_modified()
 
     def central_widget(self):
         return SampleForm()

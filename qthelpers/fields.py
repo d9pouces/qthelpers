@@ -273,6 +273,7 @@ class CharChoiceField(Field):
             default = []
         super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
                          default=default)
+
     def serialize(self, value: list) -> list:
         return [(str(x), str(y)) for (x, y) in value]
 
@@ -293,11 +294,12 @@ class CharChoiceField(Field):
 
     @staticmethod
     def check_base_type(value):
-        if not isinstance(value, list) or not isinstance(value, tuple):
-            raise InvalidValueException(_('Value must be a list or tuple of strings'))
-        for x in value:
-            if not isinstance(x, str):
-                raise InvalidValueException(_('Value must be a list or tuple of strings'))
+        if not isinstance(value, list) and not isinstance(value, tuple):
+            raise InvalidValueException(_('Value must be a list or tuple of (str, str)'))
+        for x, y in value:
+            if not isinstance(x, str) or not isinstance(y, str):
+                raise InvalidValueException(_('Values must be a list or tuple of (str, str)'))
+
 
 class FieldGroup(object):
     def __init__(self, initial=None, index=None):

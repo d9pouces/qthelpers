@@ -3,7 +3,7 @@ import functools
 import itertools
 import os
 
-from PySide import QtGui
+from PySide import QtGui, QtCore
 
 from qthelpers.application import application
 from qthelpers.menus import registered_menu_actions, registered_menus, menu_item, MenuAction
@@ -19,25 +19,27 @@ class BaseMainWindow(QtGui.QMainWindow):
     window_icon = None
     verbose_name = _('Main application window')
     _window_counter = itertools.count()
+    generic_signal = QtCore.Signal(list)
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
 
         self._window_id = next(BaseMainWindow._window_counter)
-        application.windows[self._window_counter] = self
+        application.windows[self._window_id] = self
 
         # retrieve menus and associated actions from the whole class hierarchy
         menubar = self.menuBar()
         defined_qmenus = {}
         created_action_keys = set()
-        for qualname in self.__class__.__mro__:
-            cls_name = qualname.__name__.rpartition('.')[2]
-            if cls_name not in registered_menus:
-                continue
-            for menu_name in registered_menus[cls_name]:  # create all top-level menus
+        supernames = [x.__name__.rpartition('.')[2] for x in self.__class__.__mro__]
+        supernames.reverse()
+        for cls_name in supernames:
+            for menu_name in registered_menus.get(cls_name, []):  # create all top-level menus
                 if menu_name not in defined_qmenus:
                     defined_qmenus[menu_name] = menubar.addMenu(menu_name)
-            for menu_action in registered_menu_actions[cls_name]:
+        supernames.reverse()
+        for cls_name in supernames:
+            for menu_action in registered_menu_actions.get(cls_name, []):
                 if menu_action.uid in created_action_keys:  # skip overriden actions (there are already created)
                     continue
                 created_action_keys.add(menu_action.uid)
@@ -47,8 +49,8 @@ class BaseMainWindow(QtGui.QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
         defined_qtoolbars = {}
         created_action_keys = set()
-        for qualname in self.__class__.__mro__:
-            cls_name = qualname.__name__.rpartition('.')[2]
+        for superclass in self.__class__.__mro__:
+            cls_name = superclass.__name__.rpartition('.')[2]
             if cls_name not in registered_toolbars:
                 continue
             for toolbar_name in registered_toolbars[cls_name]:  # create all top-level menus
@@ -70,7 +72,7 @@ class BaseMainWindow(QtGui.QMainWindow):
             self.setWindowIcon(get_icon(self.window_icon))
 
         self.setCentralWidget(self.central_widget())
-
+        self.generic_signal.connect(self.generic_slot)
         self.raise_()
 
     def central_widget(self):
@@ -80,9 +82,20 @@ class BaseMainWindow(QtGui.QMainWindow):
         del application.windows[self._window_id]
         super().close()
 
+    # noinspection PyMethodMayBeStatic
+    def generic_slot(self, arguments: list):
+        """
+        Generic slot, connected to self.generic_signal
+        :param arguments: list of a callable and its arguments
+        :return: nothing
+        """
+        my_callable = arguments[0]
+        my_callable(my_callable, *(arguments[1:]))
+
 
 class SingleDocumentWindow(BaseMainWindow):
     document_known_extensions = _('Text files (*.txt);;HTML files (*.html *.htm)')
+    base_max_recent_documents = 10
 
     def __init__(self, filename=None):
         super().__init__()
@@ -91,9 +104,17 @@ class SingleDocumentWindow(BaseMainWindow):
         if filename:
             self.base_open_document(filename)
         else:
-            self.create_document()
+            self.base_new_document()
 
-    @menu_item(verbose_name=_('Open document'), menu=_('File'))
+    @menu_item(verbose_name=_('New document'), menu=_('File'), shortcut='Ctrl+N')
+    def base_new_document(self):
+        self.unload_document()
+        self.current_document_filename = None
+        self.current_document_is_modified = False
+        self.base_window_title()
+        self.create_document()
+
+    @menu_item(verbose_name=_('Open…'), menu=_('File'), shortcut='Ctrl+O')
     def base_open_document(self, filename=None):
         if not filename:
             # noinspection PyCallByClass
@@ -104,24 +125,39 @@ class SingleDocumentWindow(BaseMainWindow):
                 return
             application.GlobalInfos.last_open_folder = os.path.dirname(filename)
         if not self.is_valid_document(filename):
-            warning(_('Invalid document'), _('Unable to open document %(filename)s.') % {os.path.basename(filename)},
+            warning(_('Invalid document'), _('Unable to open document %(filename)s.') %
+                    {'filename': os.path.basename(filename)},
                     only_ok=True)
             return
         self.unload_document()
         self.current_document_filename = filename
         self.current_document_is_modified = False
         self.base_window_title()
+        self.base_add_recent_filename()
         self.load_document()
 
-    @menu_item(verbose_name=_('New document'), menu=_('File'))
-    def base_new_document(self):
-        self.unload_document()
-        self.current_document_filename = None
-        self.current_document_is_modified = False
-        self.base_window_title()
-        self.create_document()
+    @menu_item(verbose_name=_('Open recent…'), menu=_('File'), submenu=True)
+    def base_open_recent(self):
+        actions = []
+        for k, v in application.GlobalInfos.last_documents:
+            if not os.path.isfile(k):
+                continue
+            actions.append(MenuAction(functools.partial(self.base_open_document, k), _('Open %(name)s') % {'name': v},
+                                      _('File')))
+        return actions
 
-    @menu_item(verbose_name=_('Save document'), menu=_('File'))
+    @menu_item(verbose_name=_('Close document'), menu=_('File'), sep=True, shortcut='Ctrl+W')
+    def base_close_document(self):
+        if self.current_document_is_modified:
+            ans = warning(_('The document has been modified'),
+                          _('The currently open document has been modified. Any change will be lost if you close it.'
+                            'Do you want to continue?'))
+            if not ans:
+                return
+        self.unload_document()
+        self.close()
+
+    @menu_item(verbose_name=_('Save document'), menu=_('File'), shortcut='Ctrl+S')
     def base_save_document(self, filename=None):
         if filename:
             self.current_document_filename = filename
@@ -137,6 +173,7 @@ class SingleDocumentWindow(BaseMainWindow):
         self.save_document()
         self.current_document_is_modified = False
         self.base_window_title()
+        self.base_add_recent_filename()
 
     @menu_item(verbose_name=_('Save as…'), menu=_('File'))
     def base_save_document_as(self):
@@ -151,21 +188,23 @@ class SingleDocumentWindow(BaseMainWindow):
         self.save_document()
         self.current_document_is_modified = False
         self.base_window_title()
+        self.base_add_recent_filename()
 
-    @menu_item(verbose_name=_('Open recent…'), menu=_('File'), submenu=True)
-    def base_open_recent(self):
-        actions = []
-        for k, v in application.GlobalInfos.last_documents:
-            if not os.path.isfile(k):
-                continue
-            actions.append(MenuAction(functools.partial(self.base_open_document, k), _('Open %(name)s') % {'name': v},
-                                      _('File')))
-        return actions
-
-    def base_add_open_document(self):
+    def base_add_recent_filename(self):
         filename = self.current_document_filename
-        if filename:
-            application.GlobalInfos.last_documents.append((filename, os.path.basename(filename)))
+        if not filename:
+            return
+        for (k, v) in application.GlobalInfos.last_documents:
+            if k == filename:
+                return
+        application.GlobalInfos.last_documents.insert(0, (filename, os.path.basename(filename)))
+        while len(application.GlobalInfos.last_documents) > self.base_max_recent_documents:
+            del application.GlobalInfos.last_documents[self.base_max_recent_documents]
+
+    def base_mark_document_as_modified(self):
+        if not self.current_document_is_modified:
+            self.current_document_is_modified = True
+            self.base_window_title()
 
     def base_window_title(self):
         if self.current_document_filename is not None:
