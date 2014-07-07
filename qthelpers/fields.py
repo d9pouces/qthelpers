@@ -1,8 +1,13 @@
 # coding=utf-8
-from PySide import QtGui
+import functools
+import json
+from PySide import QtGui, QtCore
 import itertools
 from qthelpers.exceptions import InvalidValueException
+from qthelpers.shortcuts import create_button
 from qthelpers.translation import ugettext as _
+from qthelpers.utils import p
+from qthelpers.widgets import FilepathWidget
 
 __author__ = 'flanker'
 
@@ -32,8 +37,7 @@ class Field(object):
                 validator(value)
         return True
 
-    @staticmethod
-    def check_base_type(value) -> None:
+    def check_base_type(self, value) -> None:
         raise NotImplementedError
 
     def serialize(self, value) -> str:
@@ -42,7 +46,7 @@ class Field(object):
     def deserialize(self, value: str):
         raise NotImplementedError
 
-    def get_widget(self, field_group):
+    def get_widget(self, field_group, parent=None):
         raise NotImplementedError
 
     def get_widget_value(self, widget):
@@ -53,6 +57,40 @@ class Field(object):
 
     def set_widget_valid(self, widget, valid: bool, msg: str):
         raise NotImplementedError
+
+
+class IndexedButtonField(Field):
+
+    def __init__(self, connect=None, legend=None, icon=None, verbose_name='', help_text=None, default=None,
+                 disabled=False, validators=None):
+        super().__init__(verbose_name=verbose_name, help_text=help_text, default=default, disabled=disabled,
+                         validators=validators)
+        self.legend = legend
+        self.icon = icon
+        self.connect = connect
+
+    def check_base_type(self, value):
+        pass
+
+    def serialize(self, value):
+        return None
+
+    def deserialize(self, value: str):
+        return None
+
+    def get_widget(self, field_group, parent=None):
+        connect = functools.partial(self.connect, index=field_group.index)
+        return create_button(self.legend, icon=self.icon, min_size=True, flat=True, help_text=self.help_text,
+                             connect=connect, parent=parent)
+
+    def get_widget_value(self, widget):
+        return None
+
+    def set_widget_value(self, widget, value):
+        pass
+
+    def set_widget_valid(self, widget, valid: bool, msg: str):
+        pass
 
 
 class CharField(Field):
@@ -73,8 +111,7 @@ class CharField(Field):
         super().__init__(verbose_name, help_text, default, disabled, validators)
         self.widget_validator = widget_validator
 
-    @staticmethod
-    def check_base_type(value):
+    def check_base_type(self, value):
         if isinstance(value, str):
             return
         raise InvalidValueException(_('value must be a string'))
@@ -85,8 +122,8 @@ class CharField(Field):
     def deserialize(self, value: str):
         return value
 
-    def get_widget(self, field_group):
-        editor = QtGui.QLineEdit()
+    def get_widget(self, field_group, parent=None):
+        editor = QtGui.QLineEdit(p(parent))
         if self.help_text is not None:
             editor.setToolTip(self.help_text)
         if self.widget_validator is not None:
@@ -135,8 +172,8 @@ class IntegerField(Field):
             return None
         return int(value)
 
-    def get_widget(self, field_group):
-        editor = QtGui.QLineEdit()
+    def get_widget(self, field_group, parent=None):
+        editor = QtGui.QLineEdit(p(parent))
         if self.help_text is not None:
             editor.setToolTip(self.help_text)
         editor.setValidator(self.widget_validator)
@@ -170,8 +207,7 @@ class IntegerField(Field):
                 widget_validator = QtGui.QIntValidator(min_value, max_value, None)
         return widget_validator
 
-    @staticmethod
-    def check_base_type(value):
+    def check_base_type(self, value):
         if value is None or isinstance(value, int):
             return
         raise InvalidValueException(_('value must be a integer'))
@@ -201,24 +237,10 @@ class FloatField(IntegerField):
         else:
             widget.setText(str(value))
 
-    @staticmethod
-    def check_base_type(value):
+    def check_base_type(self, value):
         if value is None or isinstance(value, float):
             return
         raise InvalidValueException(_('value must be a float'))
-
-    @staticmethod
-    def default_widget_validator(max_value, min_value, widget_validator):
-        if widget_validator is None:
-            if min_value is None and max_value is None:
-                widget_validator = None
-            elif min_value is None:
-                widget_validator = QtGui.QIntValidator(-1000000, int(max_value), None)
-            elif max_value is None:
-                widget_validator = QtGui.QIntValidator(min_value, 1000000, None)
-            else:
-                widget_validator = QtGui.QIntValidator(min_value, max_value, None)
-        return widget_validator
 
     @staticmethod
     def default_widget_validator(max_value, min_value, widget_validator):
@@ -242,8 +264,8 @@ class BooleanField(Field):
     def deserialize(self, value: bool) -> bool:
         return bool(value)
 
-    def get_widget(self, field_group):
-        editor = QtGui.QCheckBox()
+    def get_widget(self, field_group, parent=None):
+        editor = QtGui.QCheckBox(p(parent))
         if self.help_text:
             editor.setToolTip(self.help_text)
         return editor
@@ -257,48 +279,148 @@ class BooleanField(Field):
     def set_widget_valid(self, widget, valid: bool, msg: str):
         pass
 
-    @staticmethod
-    def check_base_type(value):
+    def check_base_type(self, value):
         if not isinstance(value, bool):
             raise InvalidValueException(_('Value must be a boolean'))
 
 
 class FilepathField(CharField):
-    pass
+    def __init__(self, verbose_name: str='', help_text: str=None, default: str=None, disabled: bool=False,
+                 validators: list=None, selection_filter: str=None, required=True):
+        if validators is None:
+            validators = []
+        if required:
+            validators.insert(0, self.check_required)
+        self.required = required
+        super().__init__(verbose_name=verbose_name, help_text=help_text, default=default, disabled=disabled,
+                         validators=validators)
+        self.selection_filter = selection_filter
+
+    def get_widget(self, field_group, parent=None):
+        return FilepathWidget(selection_filter=self.selection_filter, parent=parent)
+
+    @staticmethod
+    def check_required(value):
+        if value is None:
+            raise InvalidValueException(_('no value provided'))
+
+    def get_widget_value(self, widget: FilepathWidget):
+        return widget.get_value()
+
+    def set_widget_valid(self, widget: FilepathWidget, valid: bool, msg: str):
+        widget.setPalette(palette_valid if valid else palette_invalid)
+
+    def set_widget_value(self, widget: FilepathWidget, value: str):
+        widget.set_value(value)
 
 
-class CharChoiceField(Field):
-    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
+class ListField(Field):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
+                 base_type=None, min_length=None, max_length=None):
+        self.min_length = min_length
+        self.max_length = max_length
+        self.base_type = base_type
         if default is None:
             default = []
+        if validators is None:
+            validators = []
+        if min_length is not None:
+            def valid_min(value):
+                if value is not None and len(value) < min_length:
+                    raise InvalidValueException(_('list must count at least %(m)d values') % {'m': min_length})
+            validators.append(valid_min)
+        if max_length is not None:
+            def valid_max(value):
+                if value is not None and len(value) > max_length:
+                    raise InvalidValueException(_('list must count at most %(m)d values') % {'m': min_length})
+            validators.append(valid_max)
         super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
                          default=default)
 
     def serialize(self, value: list) -> list:
-        return [(str(x), str(y)) for (x, y) in value]
+        return value
 
     def deserialize(self, value: list) -> list:
         return value
 
-    def get_widget(self, field_group):
-        pass
+    def get_widget(self, field_group, parent=None):
+        regexp = None
+        if self.base_type == int:
+            regexp = r'\d+(,\d+)*'
+        elif self.base_type == float:
+            regexp = r'(\?.\d+|\d+\.\d*)(,\?.\d+|,\d+\.\d)*'
+        editor = QtGui.QLineEdit(p(parent))
+        if self.help_text is not None:
+            editor.setToolTip(self.help_text)
+        if regexp is not None:
+            editor.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(regexp), p(parent)))
+        return editor
 
-    def get_widget_value(self, widget):
-        pass
+    def get_widget_value(self, widget) -> list:
+        value = widget.text()
+        if not value:
+            return []
+        values = value.split(',')
+        if self.base_type == int:
+            values = [int(x) for x in values]
+        elif self.base_type == float:
+            values = [float(x) for x in values]
+        return values
 
-    def set_widget_value(self, widget, value):
-        pass
+    def set_widget_value(self, widget, value: list):
+        widget.setText(','.join([str(x) for x in value]))
 
     def set_widget_valid(self, widget, valid: bool, msg: str):
-        pass
+        widget.setPalette(palette_valid if valid else palette_invalid)
 
-    @staticmethod
-    def check_base_type(value):
+    def check_base_type(self, value):
         if not isinstance(value, list) and not isinstance(value, tuple):
-            raise InvalidValueException(_('Value must be a list or tuple of (str, str)'))
-        for x, y in value:
-            if not isinstance(x, str) or not isinstance(y, str):
-                raise InvalidValueException(_('Values must be a list or tuple of (str, str)'))
+            raise InvalidValueException(_('Value must be a list or tuple of base JSON types'))
+        if self.base_type in (str, int, float, bool):
+            pass
+        try:
+            json.dumps(value)
+        except TypeError:
+            raise InvalidValueException(_('Value must be a list of base JSON types'))
+
+
+class ChoiceField(Field):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
+                 choices=None):
+        super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
+                         default=default)
+        if choices is None:
+            raise InvalidValueException(_('You must provide a list of tuples for ‘choices’ argument.'))
+        self.choices = choices
+
+    def serialize(self, value: object) -> object:
+        return value
+
+    def deserialize(self, value: list) -> list:
+        return value
+
+    def get_widget(self, field_group, parent=None):
+        widget = QtGui.QComboBox(p(parent))
+        for value, text_value in self.choices:
+            widget.addItem(text_value, value)
+        return widget
+
+    def get_widget_value(self, widget: QtGui.QComboBox):
+        return widget.itemData(widget.currentIndex(), QtCore.Qt.UserRole)
+
+    def set_widget_value(self, widget: QtGui.QComboBox, value):
+        for index, item in enumerate(self.choices):
+            if item[0] == value:
+                widget.setCurrentIndex(index)
+
+    def set_widget_valid(self, widget, valid: bool, msg: str):
+        widget.setPalette(palette_valid if valid else palette_invalid)
+
+    def check_base_type(self, value):
+        try:
+            json.dumps(value)
+        except TypeError:
+            raise InvalidValueException(_('Value must be a list of base JSON types'))
 
 
 class FieldGroup(object):

@@ -3,14 +3,30 @@ QtExample
 
     * logging
 
-    * Application 1 document par fenêtre, avec
-        * liste des derniers documents ouverts
-        * fenêtre d'ouverture de document
-        * fenêtre d'enregistrement
-        * auto-save
-        * enregistrer sous
     * Fenêtre de préférences
     * Fenêtre à propos de
     * Application mono-fenêtre
-    * Nouveaux Field
+
+    * QSplashScreen avec QProgressBar
+
+    * Nouveaux Field :
+        * ButtonField
+        * CharChoiceField [QRadioButton | QComboxBox]
+        * MultiChoiceField [QCheckBox]
+        * IntegerChoiceField
+        * FloatChoiceField
+        * FilepathField
+        * PushButton
+        * ImageField
+        * CharField avec autocompletion
+        * FloatField -> QDoubleSpinBox
+        * FloatField -> QSlider
+        * DateField
+        * TimeField
+        * DateTimeField
+
+    * Nouveaux formulaires :
+        * InlineForm
+        * TabbedForm
+
 

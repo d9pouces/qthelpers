@@ -2,6 +2,7 @@
 import functools
 from PySide import QtGui, QtCore
 from qthelpers.shortcuts import get_icon
+from qthelpers.utils import p
 
 __author__ = 'flanker'
 registered_menus = {}  # registered_menus[cls_name] = [Menu1, Menu2, …]
@@ -53,7 +54,7 @@ class MenuAction(object):
         if self.sep:
             parent_menu.addSeparator()
         if self.submenu:
-            menu = QtGui.QMenu(self.verbose_name, parent_obj)
+            menu = QtGui.QMenu(self.verbose_name, p(parent_obj))
             if self.icon:
                 action = parent_menu.addMenu(get_icon(self.icon), menu)
             else:
@@ -61,9 +62,9 @@ class MenuAction(object):
             action.hovered.connect(functools.partial(self.fill_submenu, parent_obj, menu, method))
         else:
             if self.icon:
-                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, parent_obj)
+                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, p(parent_obj))
             else:
-                action = QtGui.QAction(self.verbose_name, parent_obj)
+                action = QtGui.QAction(self.verbose_name, p(parent_obj))
             # noinspection PyUnresolvedReferences
             action.triggered.connect(method)
             parent_menu.addAction(action)

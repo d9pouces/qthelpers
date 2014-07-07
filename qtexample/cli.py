@@ -2,7 +2,7 @@ import argparse
 import random
 
 from qthelpers.application import application, SingleDocumentApplication
-from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField
+from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
 from qthelpers.forms import SimpleFormDialog, Form
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
@@ -35,6 +35,7 @@ class SampleForm(Form):
     float_value = FloatField(default=10., required=True, verbose_name='Float value')
     float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
+    filename = FilepathField(verbose_name='A file path')
 
 
 class SampleFormDialog(SimpleFormDialog):
@@ -45,10 +46,13 @@ class SampleFormDialog(SimpleFormDialog):
     float_value = FloatField(default=10., required=True, verbose_name='Float value')
     float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
+    filename = FilepathField(verbose_name='A file path')
+    choices = ChoiceField(verbose_name='Some choices', choices=((1, 'example 1'), (2, 'example 2')))
 
 
 class SampleBaseWindows(BaseMainWindow):
     window_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    filename = FilepathField(verbose_name='A file path')
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
     @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
@@ -58,13 +62,13 @@ class SampleBaseWindows(BaseMainWindow):
     @menu_item(menu='TestMenu', verbose_name='TestSubmenu', submenu=True, sep=True)
     def test_menu_2(self):
         return [
-            MenuAction(self.test_1, verbose_name='Submenu %d' % random.randint(1, 65536), menu=''),
-            MenuAction(self.test_2, verbose_name='Submenu %d' % random.randint(1, 65536), menu=''),
+            MenuAction(self.test_1, verbose_name='Test form %d' % random.randint(1, 65536), menu=''),
+            MenuAction(self.test_2, verbose_name='Test systray %d' % random.randint(1, 65536), menu=''),
         ]
 
     @staticmethod
     def test_1():
-        print('111')
+        SampleFormDialog.get_values()
 
     @staticmethod
     def test_2():
@@ -108,7 +112,7 @@ class SampleDocumentWindow(SingleDocumentWindow):
         """
         return True
 
-    @menu_item(menu='TestMenu', verbose_name='TestSubmenu', sep=True)
+    @menu_item(menu='TestMenu', verbose_name='Mark as modified')
     def test_menu_2(self):
         self.base_mark_document_as_modified()
 

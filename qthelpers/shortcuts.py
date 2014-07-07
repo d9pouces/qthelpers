@@ -1,17 +1,15 @@
 # coding=utf-8
 from PySide import QtGui
 import pkg_resources
-
-from qthelpers.preferences import preferences
-
+from qthelpers.utils import p
 
 __author__ = 'flanker'
 
 
-def __generic_layout(layout, args):
+def __generic_layout(parent, layout, args):
     for arg in args:
         if isinstance(arg, QtGui.QLayout):
-            sub_widget = QtGui.QWidget()
+            sub_widget = QtGui.QWidget(parent)
             sub_widget.setLayout(arg)
             layout.addWidget(sub_widget)
         elif isinstance(arg, QtGui.QWidget):
@@ -19,14 +17,14 @@ def __generic_layout(layout, args):
     return layout
 
 
-def v_layout(*args):
-    layout = QtGui.QVBoxLayout()
-    return __generic_layout(layout, args)
+def v_layout(parent, *args):
+    layout = QtGui.QVBoxLayout(parent, )
+    return __generic_layout(parent, layout, args)
 
 
-def h_layout(*args):
-    layout = QtGui.QHBoxLayout()
-    return __generic_layout(layout, args)
+def h_layout(parent, *args):
+    layout = QtGui.QHBoxLayout(parent)
+    return __generic_layout(parent, layout, args)
 
 
 __ICON_CACHE = {}
@@ -35,6 +33,7 @@ __ICON_CACHE = {}
 def get_icon(icon_name):
     if icon_name in __ICON_CACHE:
         return __ICON_CACHE[icon_name]
+    from qthelpers.preferences import preferences
     modname, sep, filename = icon_name.partition(':')
     theme_key = preferences.selected_theme_key
     if theme_key is not None:
@@ -53,13 +52,13 @@ def get_theme_icon(name, icon_name):
 
 
 def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=None, help_text: str=None,
-                  flat: bool=False):
+                  flat: bool=False, parent=None):
     if isinstance(icon, str):
-        button = QtGui.QPushButton(get_icon(icon), legend)
+        button = QtGui.QPushButton(get_icon(icon), legend, p(parent))
     elif icon:
-        button = QtGui.QPushButton(icon, legend)
+        button = QtGui.QPushButton(icon, legend, p(parent))
     else:
-        button = QtGui.QPushButton(legend)
+        button = QtGui.QPushButton(legend, p(parent))
     if min_size:
         button.setMinimumSize(button.minimumSize())
     if help_text:

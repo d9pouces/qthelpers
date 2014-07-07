@@ -2,29 +2,30 @@
 import functools
 from PySide import QtCore, QtGui
 from qthelpers.exceptions import InvalidValueException
-from qthelpers.fields import FieldGroup
-from qthelpers.shortcuts import v_layout, create_button, h_layout
+from qthelpers.fields import FieldGroup, IndexedButtonField
+from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout
 from qthelpers.translation import ugettext as _
+from qthelpers.utils import p
 
 __author__ = 'flanker'
 
 
 class Form(FieldGroup, QtGui.QWidget):
 
-    def __init__(self, initial=None):
+    def __init__(self, initial=None, parent=None):
         FieldGroup.__init__(self, initial=initial, index=None)
-        QtGui.QWidget.__init__(self)
+        QtGui.QWidget.__init__(self, p(parent))
 
         # widget creation
         self._widgets = {}
-        layout = QtGui.QGridLayout()
+        layout = QtGui.QGridLayout(p(parent))
         for row_index, field_name in enumerate(self._field_order):
             field = self._fields[field_name]
             widget = field.get_widget(self)
             self._widgets[field_name] = widget
             field.set_widget_value(widget, self._values[field_name])
             if field.verbose_name:
-                layout.addWidget(QtGui.QLabel(field.verbose_name), row_index, 0)
+                layout.addWidget(QtGui.QLabel(field.verbose_name, p(self)), row_index, 0)
             layout.addWidget(widget, row_index, 1)
         self.setLayout(layout)
 
@@ -57,9 +58,9 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
     text_confirm = _('Yes')
     text_cancel = _('Cancel')
 
-    def __init__(self, initial=None):
+    def __init__(self, initial=None, parent=None):
         FieldGroup.__init__(self, initial=initial, index=None)
-        QtGui.QDialog.__init__(self)
+        QtGui.QDialog.__init__(self, p(parent))
 
         # widget creation
         self._widgets = {}
@@ -68,16 +69,16 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
 
         widgets = []
         if self.description:
-            widgets.append(QtGui.QLabel(self.description))
+            widgets.append(QtGui.QLabel(self.description, p(self)))
 
-        sub_layout = QtGui.QGridLayout()
+        sub_layout = QtGui.QGridLayout(p(self))
         for row_index, field_name in enumerate(self._field_order):
             field = self._fields[field_name]
-            widget = field.get_widget(self)
+            widget = field.get_widget(self, self)
             self._widgets[field_name] = widget
             field.set_widget_value(widget, self._values[field_name])
             if field.verbose_name:
-                sub_layout.addWidget(QtGui.QLabel(field.verbose_name), row_index, 0)
+                sub_layout.addWidget(QtGui.QLabel(field.verbose_name, p(self)), row_index, 0)
             sub_layout.addWidget(widget, row_index, 1)
 
         widgets.append(sub_layout)
@@ -87,14 +88,14 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
         if self.text_cancel:
             self._buttons.append(create_button(self.text_cancel, connect=self.reject, min_size=True))
         if self._buttons:
-            widgets.append(h_layout(*self._buttons))
+            widgets.append(h_layout(self, *self._buttons))
 
-        self.setLayout(v_layout(*widgets))
+        self.setLayout(v_layout(self, *widgets))
         self.raise_()
 
     @classmethod
-    def get_values(cls, initial=None):
-        dialog = cls(initial=initial)
+    def get_values(cls, initial=None, parent=None):
+        dialog = cls(initial=initial, parent=parent)
         result = dialog.exec_()
         if result == QtGui.QDialog.Accepted:
             # noinspection PyProtectedMember
@@ -120,15 +121,14 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
 
 
 class InlineForm(QtGui.QWidget):
-    __order__ = None
     __editable__ = True
 
     def __init__(self, list_of_values, title=''):
         super(InlineForm, self).__init__()
         self.__list_of_values = list_of_values
-        self.__attributes = [ButtonField(verbose_name=_('Add element'), icon='edit_add',
+        self.__attributes = [IndexedButtonField(verbose_name=_('Add element'), icon='edit_add',
                                          connect=self.__add_item),
-                             ButtonField(verbose_name=_('Remove element'), icon='edit_remove',
+                             IndexedButtonField(verbose_name=_('Remove element'), icon='edit_remove',
                                          connect=self.__remove_item)]
         layout = QtGui.QGridLayout()
         if title:
@@ -146,9 +146,9 @@ class InlineForm(QtGui.QWidget):
             headers = []
         if self.__order__ is not None:
             field_names = self.__order__
-        else:
-            field_names = [field_name for field_name, field in self.__class__.__dict__.items()
-                           if isinstance(field, FormField)]
+        # else:
+        #     field_names = [field_name for field_name, field in self.__class__.__dict__.items()
+        #                    if isinstance(field, FormField)]
         for field_name in field_names:
             field = self.__class__.__dict__[field_name]
             self.__keys.append(field_name)
@@ -200,7 +200,7 @@ class InlineForm(QtGui.QWidget):
         max_index = self.__main_widget.topLevelItemCount()
         if max_index <= 0:
             return
-        for i in xrange(index, max_index - 1):
+        for i in range(index, max_index - 1):
             dst_widget_item = self.__main_widget.topLevelItem(i)
             src_widget_item = self.__main_widget.topLevelItem(i + 1)
             for col_index, field_name in enumerate(self.__keys):

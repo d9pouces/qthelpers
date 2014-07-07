@@ -1,6 +1,7 @@
 # coding=utf-8
 from PySide import QtGui
 from qthelpers.shortcuts import get_icon
+from qthelpers.utils import p
 
 __author__ = 'flanker'
 registered_toolbars = {}  # registered_menus[cls_name] = [Menu1, Menu2, …]
@@ -48,9 +49,9 @@ class ToolbarAction(object):
         if self.sep:
             parent.addSeparator()
         if self.icon:
-            action = QtGui.QAction(get_icon(self.icon), self.verbose_name, window)
+            action = QtGui.QAction(get_icon(self.icon), self.verbose_name, p(window))
         else:
-            action = QtGui.QAction(self.verbose_name, window)
+            action = QtGui.QAction(self.verbose_name, p(window))
         # noinspection PyUnresolvedReferences
         action.triggered.connect(method)
         parent.addAction(action)

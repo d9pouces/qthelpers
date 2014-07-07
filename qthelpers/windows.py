@@ -12,6 +12,7 @@ from qthelpers.menus import registered_menu_actions, registered_menus, menu_item
 from qthelpers.shortcuts import get_icon, warning
 from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions
 from qthelpers.translation import ugettext as _
+from qthelpers.utils import p
 
 
 __author__ = 'flanker'
@@ -23,8 +24,8 @@ class BaseMainWindow(QtGui.QMainWindow):
     _window_counter = itertools.count()
     generic_signal = QtCore.Signal(list)
 
-    def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self, p(parent))
 
         self._window_id = next(BaseMainWindow._window_counter)
         application.windows[self._window_id] = self
@@ -58,9 +59,9 @@ class BaseMainWindow(QtGui.QMainWindow):
             for toolbar_name in registered_toolbars[cls_name]:  # create all top-level menus
                 if toolbar_name not in defined_qtoolbars:
                     if toolbar_name is not None:
-                        defined_qtoolbars[toolbar_name] = QtGui.QToolBar(toolbar_name, self)
+                        defined_qtoolbars[toolbar_name] = QtGui.QToolBar(toolbar_name, p(self))
                     else:
-                        defined_qtoolbars[toolbar_name] = QtGui.QToolBar(_('Toolbar'), self)
+                        defined_qtoolbars[toolbar_name] = QtGui.QToolBar(_('Toolbar'), p(self))
                     self.addToolBar(defined_qtoolbars[toolbar_name])
             for toolbar_action in registered_toolbar_actions[cls_name]:
                 if toolbar_action.uid in created_action_keys:  # skip overriden actions (there are already created)
@@ -75,6 +76,7 @@ class BaseMainWindow(QtGui.QMainWindow):
 
         self.setCentralWidget(self.central_widget())
         self.generic_signal.connect(self.generic_slot)
+        self.adjustSize()
         self.raise_()
 
     def central_widget(self):
@@ -156,7 +158,7 @@ class SingleDocumentWindow(BaseMainWindow):
     def base_open_document(self, filename=None):
         if not filename:
             # noinspection PyCallByClass
-            (filename, selected_filter) = QtGui.QFileDialog.getOpenFileName(self, _('Please select a file'),
+            (filename, selected_filter) = QtGui.QFileDialog.getOpenFileName(p(self), _('Please select a file'),
                                                                             application.GlobalInfos.last_open_folder,
                                                                             self.document_known_extensions)
             if not filename:
@@ -177,11 +179,16 @@ class SingleDocumentWindow(BaseMainWindow):
     @menu_item(verbose_name=_('Open recent…'), menu=_('File'), submenu=True)
     def base_open_recent(self):
         actions = []
-        for k, v in application.GlobalInfos.last_documents:
-            if not os.path.isfile(k):
+        seen_basefilenames = set()
+        for filename in application.GlobalInfos.last_documents:
+            if not os.path.isfile(filename):
                 continue
-            actions.append(MenuAction(functools.partial(self.base_open_document, k), _('Open %(name)s') % {'name': v},
-                                      _('File')))
+            basename = os.path.basename(filename)
+            if basename in seen_basefilenames:
+                basename = filename
+            seen_basefilenames.add(basename)
+            actions.append(MenuAction(functools.partial(self.base_open_document, filename),
+                                      _('Open %(name)s') % {'name': basename}, _('File')))
         return actions
 
     @menu_item(verbose_name=_('Close document'), menu=_('File'), sep=True, shortcut='Ctrl+W')
@@ -194,7 +201,7 @@ class SingleDocumentWindow(BaseMainWindow):
             self.current_document_filename = filename
         if not self.current_document_filename:
             # noinspection PyCallByClass
-            (filename, selected_filter) = QtGui.QFileDialog.getSaveFileName(self, _('Please choose a name'),
+            (filename, selected_filter) = QtGui.QFileDialog.getSaveFileName(p(self), _('Please choose a name'),
                                                                             application.GlobalInfos.last_save_folder,
                                                                             filter=self.document_known_extensions)
             if not filename:
@@ -209,7 +216,7 @@ class SingleDocumentWindow(BaseMainWindow):
     @menu_item(verbose_name=_('Save as…'), menu=_('File'))
     def base_save_document_as(self):
         # noinspection PyCallByClass
-        (filename, selected_filter) = QtGui.QFileDialog.getSaveFileName(self, _('Please choose a name'),
+        (filename, selected_filter) = QtGui.QFileDialog.getSaveFileName(p(self), _('Please choose a name'),
                                                                         application.GlobalInfos.last_save_folder,
                                                                         filter=self.document_known_extensions)
         if not filename:
@@ -222,13 +229,13 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_add_recent_filename()
 
     def base_add_recent_filename(self):
-        filename = self.current_document_filename
-        if not filename:
+        new_filename = self.current_document_filename
+        if not new_filename:
             return
-        for (k, v) in application.GlobalInfos.last_documents:
-            if k == filename:
+        for filename in application.GlobalInfos.last_documents:
+            if filename == new_filename:
                 return
-        application.GlobalInfos.last_documents.insert(0, (filename, os.path.basename(filename)))
+        application.GlobalInfos.last_documents.insert(0, new_filename)
         while len(application.GlobalInfos.last_documents) > self.base_max_recent_documents:
             del application.GlobalInfos.last_documents[self.base_max_recent_documents]
 
