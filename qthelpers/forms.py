@@ -1,6 +1,7 @@
 # coding=utf-8
 import functools
 from PySide import QtCore, QtGui
+import itertools
 from qthelpers.exceptions import InvalidValueException
 from qthelpers.fields import FieldGroup, IndexedButtonField
 from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout
@@ -48,17 +49,77 @@ class Form(FieldGroup, QtGui.QWidget):
         return self._values
 
 
-class TabbedForm(QtGui.QWidget):
-    pass
+class TabName(object):
+    counter = itertools.count()
+
+    def __init__(self, verbose_name=None):
+        self.index = next(TabName.counter)
+        self.verbose_name = verbose_name
+
+    def __str__(self):
+        return self.verbose_name
 
 
-class SimpleFormDialog(FieldGroup, QtGui.QDialog):
+class FormTab(Form):
+    verbose_name = None   # TabName(_('My Tab Name'))
+    enabled = True
+
+
+class TabbedForm(QtGui.QTabWidget):
+    def __init__(self, initial=None, parent=None):
+        """
+        :param initial: Dictionnary of initial dicts, one for each subwidget
+        :param parent:
+        :return:
+        """
+        super().__init__(p(parent))
+        self._tabforms = {}
+        self._tabs = []
+        self._values = {}
+        if initial is None:
+            initial = {}
+        for cls in self.__class__.__mro__:
+            for tab_name, tab_class in cls.__dict__.items():
+                if isinstance(tab_class, type) and issubclass(tab_class, FormTab) and tab_name not in self._tabforms:
+                    tab = tab_class(initial.get(tab_name, {}))
+                    """:type: FormTab"""
+                    self._tabforms[tab_name] = tab
+                    self._tabs.append(tab)
+        self._tabs.sort(key=lambda x: getattr(x.verbose_name, 'index', 0))
+        for index, tab in enumerate(self._tabs):
+            self.addTab(tab, str(tab.verbose_name))
+            self.setTabEnabled(index, bool(tab.enabled))
+
+    def __getattribute__(self, item: str):
+        if not item.startswith('_') and item in self._tabforms:
+            return self._tabforms[item]
+        return super().__getattribute__(item)
+
+    def is_valid(self):
+        valid = True
+        values = {}
+        for index, tab in enumerate(self._tabs):
+            """:type: (int, FormTab)"""
+            if tab.is_valid():
+                values.update(tab.get_values())
+            elif valid:
+                self.setCurrentIndex(index)
+                valid = False
+            else:
+                valid = False
+        return values if valid else None
+
+    def get_values(self):
+        return self._values
+
+
+class FormDialog(FieldGroup, QtGui.QDialog):
     verbose_name = None
     description = None
     text_confirm = _('Yes')
     text_cancel = _('Cancel')
 
-    def __init__(self, initial=None, parent=None):
+    def __init__(self, initial=None, parent=None, extra_widgets=None):
         FieldGroup.__init__(self, initial=initial, index=None)
         QtGui.QDialog.__init__(self, p(parent))
 
@@ -82,6 +143,9 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
             sub_layout.addWidget(widget, row_index, 1)
 
         widgets.append(sub_layout)
+        if extra_widgets:
+            for widget in extra_widgets:
+                widgets.append(widget)
         self._buttons = []
         if self.text_confirm:
             self._buttons.append(create_button(self.text_confirm, connect=self.accept, min_size=True))
@@ -94,8 +158,8 @@ class SimpleFormDialog(FieldGroup, QtGui.QDialog):
         self.raise_()
 
     @classmethod
-    def get_values(cls, initial=None, parent=None):
-        dialog = cls(initial=initial, parent=parent)
+    def get_values(cls, initial=None, parent=None, extra_widgets=None):
+        dialog = cls(initial=initial, parent=parent, extra_widgets=extra_widgets)
         result = dialog.exec_()
         if result == QtGui.QDialog.Accepted:
             # noinspection PyProtectedMember

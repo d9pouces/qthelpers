@@ -51,7 +51,7 @@ def slugify(value):
 
 class Preferences(object):
     organization_name = None
-    application_name = None
+    verbose_name = None
     selected_theme_key = None   # %(THEME)s will be replaced by the value of preferences.selected_theme_key
     organization_domain = None
 
@@ -78,7 +78,7 @@ class Preferences(object):
         return super().__getattribute__(item)
 
     def application_settings_filenames(self):
-        app_name = slugify(self.application_name)
+        app_name = slugify(self.verbose_name)
         if sys.platform.startswith('darwin'):
             home = os.path.expanduser('~/Library/Preferences/%s.%s.plist' % (self.organization_name, app_name))
             allusers = '/Library/Preferences/%s.%s.plist' % (self.organization_name, app_name)

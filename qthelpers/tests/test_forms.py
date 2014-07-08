@@ -5,7 +5,7 @@ import unittest
 from PySide import QtTest, QtCore
 
 from qthelpers.fields import CharField, IntegerField, FloatField, BooleanField
-from qthelpers.forms import Form, SimpleFormDialog
+from qthelpers.forms import Form, FormDialog
 from qthelpers.menus import menu_item, MenuAction
 from qthelpers.application import BaseApplication, application
 from qthelpers.toolbars import toolbar_item
@@ -16,9 +16,9 @@ __author__ = 'flanker'
 
 
 class SampleApplication(BaseApplication):
-    application_name = 'Sample Application'
+    verbose_name = 'Sample Application'
     application_version = '0.1'
-    application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
     systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item
@@ -40,7 +40,7 @@ class SampleForm(Form):
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
 
 
-class SampleFormDialog(SimpleFormDialog):
+class SampleFormDialog(FormDialog):
     verbose_name = 'My sample dialog'
     description = 'A short description'
     str_value = CharField(default='my_str', verbose_name='String value')
@@ -51,7 +51,7 @@ class SampleFormDialog(SimpleFormDialog):
 
 
 class SampleBaseWindows(BaseMainWindow):
-    window_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
     @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')

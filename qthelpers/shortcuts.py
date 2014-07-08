@@ -9,7 +9,7 @@ __author__ = 'flanker'
 def __generic_layout(parent, layout, args):
     for arg in args:
         if isinstance(arg, QtGui.QLayout):
-            sub_widget = QtGui.QWidget(parent)
+            sub_widget = QtGui.QWidget(p(parent))
             sub_widget.setLayout(arg)
             layout.addWidget(sub_widget)
         elif isinstance(arg, QtGui.QWidget):
@@ -18,12 +18,12 @@ def __generic_layout(parent, layout, args):
 
 
 def v_layout(parent, *args):
-    layout = QtGui.QVBoxLayout(parent, )
+    layout = QtGui.QVBoxLayout(p(parent))
     return __generic_layout(parent, layout, args)
 
 
 def h_layout(parent, *args):
-    layout = QtGui.QHBoxLayout(parent)
+    layout = QtGui.QHBoxLayout(p(parent))
     return __generic_layout(parent, layout, args)
 
 

@@ -6,6 +6,7 @@ QtExample
     * Fenêtre de préférences
     * Fenêtre à propos de
     * Application mono-fenêtre
+    * Icônes de base
 
     * QSplashScreen avec QProgressBar
 
@@ -30,3 +31,9 @@ QtExample
         * TabbedForm
 
 
+Gestion des docks (avec souvenir des positions)
+
+Préférences de base :
+    * position des fenêtres par type (taille et position)
+    * gestion de la toolbar (boutons désactivés)
+    *

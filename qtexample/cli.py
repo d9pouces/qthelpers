@@ -3,7 +3,7 @@ import random
 
 from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
-from qthelpers.forms import SimpleFormDialog, Form
+from qthelpers.forms import FormDialog, Form, TabbedForm, FormTab, TabName
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
@@ -13,9 +13,9 @@ __author__ = 'flanker'
 
 
 class SampleApplication(SingleDocumentApplication):
-    application_name = 'Sample Application'
+    verbose_name = 'Sample Application'
     application_version = '0.1'
-    application_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
     systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item(submenu=False)
@@ -38,7 +38,17 @@ class SampleForm(Form):
     filename = FilepathField(verbose_name='A file path')
 
 
-class SampleFormDialog(SimpleFormDialog):
+class SampleTabbedWidget(TabbedForm):
+    class Tab1(FormTab):
+        verbose_name = TabName('first tab')
+        str_value1 = CharField(default='str_value_1', verbose_name='My first string value')
+
+    class Tab2(FormTab):
+        verbose_name = TabName('second tab')
+        str_value1 = CharField(default='str_value_2', verbose_name='My second string value')
+
+
+class SampleFormDialog(FormDialog):
     verbose_name = 'My sample dialog'
     description = 'A short description'
     str_value = CharField(default='my_str', verbose_name='String value')
@@ -46,13 +56,12 @@ class SampleFormDialog(SimpleFormDialog):
     float_value = FloatField(default=10., required=True, verbose_name='Float value')
     float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
-    filename = FilepathField(verbose_name='A file path')
+    filename = FilepathField(verbose_name='A file path', required=False)
     choices = ChoiceField(verbose_name='Some choices', choices=((1, 'example 1'), (2, 'example 2')))
 
 
 class SampleBaseWindows(BaseMainWindow):
-    window_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
-    filename = FilepathField(verbose_name='A file path')
+    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
     @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
@@ -66,12 +75,13 @@ class SampleBaseWindows(BaseMainWindow):
             MenuAction(self.test_2, verbose_name='Test systray %d' % random.randint(1, 65536), menu=''),
         ]
 
-    @staticmethod
-    def test_1():
-        SampleFormDialog.get_values()
+    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
+    def test_1(self):
+        SampleFormDialog.get_values(parent=self, extra_widgets=[SampleTabbedWidget(parent=self.parent())])
 
-    @staticmethod
-    def test_2():
+    # noinspection PyMethodMayBeStatic
+    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
+    def test_2(self):
         application.systray.showMessage('Systray message title', 'Systray message')
 
     def central_widget(self):

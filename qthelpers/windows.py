@@ -19,7 +19,7 @@ __author__ = 'flanker'
 
 
 class BaseMainWindow(QtGui.QMainWindow):
-    window_icon = None
+    description_icon = None
     verbose_name = _('Main application window')
     _window_counter = itertools.count()
     generic_signal = QtCore.Signal(list)
@@ -71,8 +71,8 @@ class BaseMainWindow(QtGui.QMainWindow):
 
         # some extra stuff
         self.setWindowTitle(self.verbose_name)
-        if self.window_icon:
-            self.setWindowIcon(get_icon(self.window_icon))
+        if self.description_icon:
+            self.setWindowIcon(get_icon(self.description_icon))
 
         self.setCentralWidget(self.central_widget())
         self.generic_signal.connect(self.generic_slot)
@@ -249,9 +249,11 @@ class SingleDocumentWindow(BaseMainWindow):
             # noinspection PyTypeChecker
             title = '%s%s - %s - [%s]' % (os.path.basename(self.current_document_filename),
                                           '*' if self.current_document_is_modified else '',
-                                          application.application_name, os.path.dirname(self.current_document_filename))
+                                          application.verbose_name, os.path.dirname(self.current_document_filename))
         else:
-            title = '%s - [%s]' % (application.application_name, application.GlobalInfos.last_save_folder)
+            title = '%s%s - [%s]' % (application.verbose_name,
+                                     '*' if self.current_document_is_modified else '',
+                                     application.GlobalInfos.last_save_folder)
         self.setWindowTitle(title)
 
     def is_valid_document(self, filename):

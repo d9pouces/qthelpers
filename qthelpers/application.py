@@ -17,9 +17,9 @@ application = GlobalObject(application_key)
 class BaseApplication(Preferences):
     application = None
     systray = None
-    application_icon = None
+    description_icon = None
     application_version = None
-    systemtray_icon = True
+    systemtray_icon = None
     windows = {}
 
     def __init__(self, args: list):
@@ -28,13 +28,14 @@ class BaseApplication(Preferences):
 
         # initialize QtApplication
         self.application = QtGui.QApplication(args)
+        self.parent = QtGui.QWidget()
         global_dict[application_key] = self
 
         # set some global stuff
-        if self.application_icon:
-            self.application.setWindowIcon(get_icon(self.application_icon))
-        if self.application_name:
-            self.application.setApplicationName(self.application_name)
+        if self.description_icon:
+            self.application.setWindowIcon(get_icon(self.description_icon))
+        if self.verbose_name:
+            self.application.setApplicationName(str(self.verbose_name))
         if self.application_version:
             self.application.setApplicationVersion(self.application_version)
         if self.systemtray_icon:
@@ -52,11 +53,11 @@ class BaseApplication(Preferences):
                     continue
                 for menu_action in registered_menu_actions[cls_name]:
                     if menu is None:
-                        menu = QtGui.QMenu(self.application_name, self._parent_obj)
+                        menu = QtGui.QMenu(self.verbose_name, self._parent_obj)
                     if menu_action.uid in created_action_keys:  # skip overriden actions (there are already created)
                         continue
                     created_action_keys.add(menu_action.uid)
-                    menu_action.create(self, menu, parent_obj=self._parent_obj)
+                    menu_action.create(self, menu)
             if menu is not None:
                 self.systray.setContextMenu(menu)
             # noinspection PyUnresolvedReferences

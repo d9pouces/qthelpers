@@ -1,8 +1,11 @@
 # coding=utf-8
 import functools
-from PySide import QtGui, QtCore
+
+from PySide import QtGui
+
 from qthelpers.shortcuts import get_icon
 from qthelpers.utils import p
+
 
 __author__ = 'flanker'
 registered_menus = {}  # registered_menus[cls_name] = [Menu1, Menu2, …]
@@ -42,29 +45,28 @@ class MenuAction(object):
                 uid = str(method_name)
         self.uid = uid
 
-    def create(self, window: QtGui.QMainWindow, parent_menu: QtGui.QMenu, parent_obj: QtCore.QObject=None):
+    def create(self, window: QtGui.QMainWindow, parent_menu: QtGui.QMenu):
         if self.disabled:
             return
         if callable(self.method_name):
             method = self.method_name
         else:
             method = getattr(window, self.method_name)
-        parent_obj = window if isinstance(window, QtCore.QObject) else parent_obj
 
         if self.sep:
             parent_menu.addSeparator()
         if self.submenu:
-            menu = QtGui.QMenu(self.verbose_name, p(parent_obj))
+            menu = QtGui.QMenu(self.verbose_name, p(parent_menu))
             if self.icon:
                 action = parent_menu.addMenu(get_icon(self.icon), menu)
             else:
                 action = parent_menu.addMenu(menu)
-            action.hovered.connect(functools.partial(self.fill_submenu, parent_obj, menu, method))
+            action.hovered.connect(functools.partial(self.fill_submenu, window, menu, method))
         else:
             if self.icon:
-                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, p(parent_obj))
+                action = QtGui.QAction(get_icon(self.icon), self.verbose_name, p(parent_menu))
             else:
-                action = QtGui.QAction(self.verbose_name, p(parent_obj))
+                action = QtGui.QAction(self.verbose_name, p(parent_menu))
             # noinspection PyUnresolvedReferences
             action.triggered.connect(method)
             parent_menu.addAction(action)

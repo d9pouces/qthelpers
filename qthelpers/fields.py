@@ -424,6 +424,7 @@ class ChoiceField(Field):
 
 
 class FieldGroup(object):
+
     def __init__(self, initial=None, index=None):
         """
         :param initial: initial values, as a dictionnary {field_name: field_value}

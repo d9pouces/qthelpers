@@ -9,7 +9,7 @@ __author__ = 'flanker'
 
 class SamplePreferences(Preferences):
     organization_name = 'my_organization'
-    application_name = 'my_application'
+    verbose_name = 'my_application'
 
     class Section1(Section):
         str_value = CharField(default='my_str')
