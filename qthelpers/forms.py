@@ -125,14 +125,11 @@ class FormDialog(FieldGroup, QtGui.QDialog):
 
         # widget creation
         self._widgets = {}
-        if self.verbose_name:
-            self.setWindowTitle(self.verbose_name)
-
         widgets = []
         if self.description:
             widgets.append(QtGui.QLabel(self.description, p(self)))
 
-        sub_layout = QtGui.QGridLayout(p(self))
+        sub_layout = QtGui.QGridLayout(self)
         for row_index, field_name in enumerate(self._field_order):
             field = self._fields[field_name]
             widget = field.get_widget(self, self)
@@ -153,8 +150,10 @@ class FormDialog(FieldGroup, QtGui.QDialog):
             self._buttons.append(create_button(self.text_cancel, connect=self.reject, min_size=True))
         if self._buttons:
             widgets.append(h_layout(self, *self._buttons))
-
         self.setLayout(v_layout(self, *widgets))
+
+        if self.verbose_name:
+            self.setWindowTitle(self.verbose_name)
         self.raise_()
 
     @classmethod

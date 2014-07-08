@@ -45,7 +45,11 @@ class SampleTabbedWidget(TabbedForm):
 
     class Tab2(FormTab):
         verbose_name = TabName('second tab')
-        str_value1 = CharField(default='str_value_2', verbose_name='My second string value')
+        str_value2 = CharField(default='str_value_2', verbose_name='My second string value')
+
+    class Tab3(FormTab):
+        verbose_name = TabName('third tab')
+        str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
 
 
 class SampleFormDialog(FormDialog):

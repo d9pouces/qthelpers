@@ -1,6 +1,7 @@
 # coding=utf-8
 from PySide import QtGui
 import pkg_resources
+import sys
 from qthelpers.utils import p
 
 __author__ = 'flanker'
@@ -18,12 +19,12 @@ def __generic_layout(parent, layout, args):
 
 
 def v_layout(parent, *args):
-    layout = QtGui.QVBoxLayout(p(parent))
+    layout = QtGui.QVBoxLayout(None)
     return __generic_layout(parent, layout, args)
 
 
 def h_layout(parent, *args):
-    layout = QtGui.QHBoxLayout(p(parent))
+    layout = QtGui.QHBoxLayout(None)
     return __generic_layout(parent, layout, args)
 
 
