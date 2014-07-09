@@ -3,7 +3,7 @@ import random
 
 from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
-from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm
+from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm, StackedMultiForm, ToolboxMultiForm
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
@@ -31,9 +31,12 @@ class SampleApplication(SingleDocumentApplication):
 
 class SampleForm(Form):
     str_value = CharField(default='my_str', verbose_name='String value')
-    int_value = IntegerField(default=42, required=True, verbose_name='Integer value')
-    float_value = FloatField(default=10., required=True, verbose_name='Float value')
-    float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
+
+    class Sub1(SubForm):
+        verbose_name = FormName('simple box')
+        int_value = IntegerField(default=42, required=True, verbose_name='Integer value')
+        float_value = FloatField(default=10., required=True, verbose_name='Float value')
+        float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
 
     class SampleTabbedWidget(TabbedMultiForm):
         verbose_name = FormName('Tab subforms')
@@ -51,6 +54,33 @@ class SampleForm(Form):
             str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
 
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
+
+    class SampleStackedWidget(StackedMultiForm):
+        verbose_name = FormName('Stacked subforms')
+
+        class Sub1(SubForm):
+            verbose_name = FormName('first tab')
+            str_value1 = CharField(default='str_value_1', verbose_name='My first string value')
+
+        class Sub2(SubForm):
+            verbose_name = FormName('second tab')
+            str_value2 = CharField(default='str_value_2', verbose_name='My second string value')
+
+        class Sub3(SubForm):
+            verbose_name = FormName('third tab')
+            str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
+
+    class SampleToolboxWidget(ToolboxMultiForm):
+        verbose_name = FormName('Stacked subforms')
+
+        class Sub2(SubForm):
+            verbose_name = FormName('second tab')
+            str_value2 = CharField(default='str_value_2', verbose_name='My second string value')
+
+        class Sub3(SubForm):
+            verbose_name = FormName('third tab')
+            str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
+
     filename = FilepathField(verbose_name='A file path')
 
 

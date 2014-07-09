@@ -23,63 +23,6 @@ class FormName(object):
         return self.verbose_name
 
 
-class MultiForm(object):
-    verbose_name = None  # FormName('')
-
-    def __init__(self, initial=None):
-        """
-        :param initial: Dictionnary of initial values
-        :return:
-        """
-        self._subforms_by_name = {}
-        self._subforms_list = []
-        self._values = {}
-        for cls in self.__class__.__mro__:
-            for subform_name, subform_class in cls.__dict__.items():
-                if isinstance(subform_class, type) and issubclass(subform_class, SubForm) \
-                        and subform_name not in self._subforms_by_name:
-                    subform = subform_class(initial=initial)
-                    """:type: SubForm"""
-                    self._subforms_by_name[subform_name] = subform
-                    self._subforms_list.append((subform_name, subform))
-        self._subforms_list.sort(key=lambda x: getattr(x[1].verbose_name, 'index', 0))
-        for subform_index, (subform_name, subform) in enumerate(self._subforms_list):
-            self.add_form(subform_index, subform_name, subform)
-            self.set_form_enabled(subform_index, subform, bool(subform.enabled))
-
-    def __getattribute__(self, item: str):
-        if not item.startswith('_') and item in self._subforms_by_name:
-            return self._subforms_by_name[item]
-        return super().__getattribute__(item)
-
-    def set_current(self, index, name, subform):
-        raise NotImplementedError
-
-    def add_form(self, index, name, subform):
-        raise NotImplementedError
-
-    def set_form_enabled(self, index, name, enabled):
-        raise NotImplementedError
-
-    def is_valid(self):
-        valid = True
-        self._values = {}
-        for subform_index, subform_data in enumerate(self._subforms_list):
-            subform_name, subform = subform_data
-            """:type: (int, FormTab)"""
-            if subform.is_valid():
-                self._values.update(subform.get_values())
-            elif valid:
-                self.set_current(subform_index, str(subform.verbose_name), subform)
-                valid = False
-            else:
-                valid = False
-        return valid
-
-    def get_values(self):
-        return self._values
-
-
 class BaseForm(FieldGroup):
 
     def __init__(self, initial=None):
@@ -89,7 +32,9 @@ class BaseForm(FieldGroup):
         # retrieve all MultiForm classes from class definitions
         for cls in self.__class__.__mro__:
             for name, subcls in cls.__dict__.items():
-                if not isinstance(subcls, type) or not issubclass(subcls, MultiForm) or name in self._multiforms:
+                if not isinstance(subcls, type) or \
+                        (not issubclass(subcls, MultiForm) and not issubclass(subcls, SubForm)) or \
+                        name in self._multiforms:
                     continue
                 self._multiforms[name] = subcls(initial=initial, parent=self)
 
@@ -108,6 +53,12 @@ class BaseForm(FieldGroup):
         for row_index, obj in enumerate(all_components):
             if isinstance(obj, MultiForm):  # a MultiForm already is a QWidget
                 layout.addWidget(obj, row_offset + row_index, 0, 1, 2)
+            elif isinstance(obj, SubForm):
+                widget = QtGui.QGroupBox(str(obj.verbose_name), p(self))
+                sub_layout = QtGui.QGridLayout(p(widget))
+                obj._fill_grid_layout(sub_layout)
+                widget.setLayout(sub_layout)
+                layout.addWidget(widget, row_offset + row_index, 0, 1, 2)
             else:
                 widget = obj.get_widget(self, self)
                 self._widgets[obj.name] = widget
@@ -146,7 +97,7 @@ class BaseForm(FieldGroup):
 
     @staticmethod
     def _sort_components(obj) -> int:
-        if isinstance(obj, MultiForm):
+        if isinstance(obj, MultiForm) or isinstance(obj, SubForm):
             return getattr(obj.verbose_name, 'index', 0)
         return obj.group_field_order
 
@@ -172,6 +123,63 @@ class SubForm(Form):
 #         class tab_1(SubForm):
 #             verbose_name = FormName('First Tab')
 #             field_str_1 = CharField()
+
+
+class MultiForm(object):
+    verbose_name = None  # FormName('')
+
+    def __init__(self, initial=None):
+        """
+        :param initial: Dictionnary of initial values
+        :return:
+        """
+        self._subforms_by_name = {}
+        self._subforms_list = []
+        self._values = {}
+        for cls in self.__class__.__mro__:
+            for subform_name, subform_class in cls.__dict__.items():
+                if isinstance(subform_class, type) and issubclass(subform_class, SubForm) \
+                        and subform_name not in self._subforms_by_name:
+                    subform = subform_class(initial=initial)
+                    """:type: SubForm"""
+                    self._subforms_by_name[subform_name] = subform
+                    self._subforms_list.append((subform_name, subform))
+        self._subforms_list.sort(key=lambda x: getattr(x[1].verbose_name, 'index', 0))
+        for subform_index, (subform_name, subform) in enumerate(self._subforms_list):
+            self.add_form(subform_index, subform_name, subform)
+            self.set_form_enabled(subform_index, subform, bool(subform.enabled))
+
+    def __getattribute__(self, item: str):
+        if not item.startswith('_') and item in self._subforms_by_name:
+            return self._subforms_by_name[item]
+        return super().__getattribute__(item)
+
+    def set_current(self, index: int, name: str, subform: SubForm):
+        raise NotImplementedError
+
+    def add_form(self, index: int, name: str, subform: SubForm):
+        raise NotImplementedError
+
+    def set_form_enabled(self, index, name, enabled):
+        raise NotImplementedError
+
+    def is_valid(self):
+        valid = True
+        self._values = {}
+        for subform_index, subform_data in enumerate(self._subforms_list):
+            subform_name, subform = subform_data
+            """:type: (int, FormTab)"""
+            if subform.is_valid():
+                self._values.update(subform.get_values())
+            elif valid:
+                self.set_current(subform_index, str(subform.verbose_name), subform)
+                valid = False
+            else:
+                valid = False
+        return valid
+
+    def get_values(self):
+        return self._values
 
 
 class FormDialog(BaseForm, QtGui.QDialog):
@@ -221,29 +229,55 @@ class TabbedMultiForm(MultiForm, QtGui.QTabWidget):
         QtGui.QTabWidget.__init__(self, p(parent))
         MultiForm.__init__(self, initial=initial)
 
-    def set_current(self, index, name, subform):
+    def set_current(self, index: int, name: str, subform: SubForm):
         self.setCurrentIndex(index)
 
-    def add_form(self, index, name, subform):
+    def add_form(self, index: int, name: str, subform: SubForm):
         self.addTab(subform, str(subform.verbose_name))
 
     def set_form_enabled(self, index, name, enabled):
         self.setTabEnabled(index, enabled)
 
 
-class StackeddMultiForm(MultiForm, QtGui.QStackedWidget):
+class StackedMultiForm(MultiForm, QtGui.QGroupBox):
     def __init__(self, initial=None, parent=None):
-        QtGui.QStackedWidget.__init__(self, p(parent))
+        QtGui.QGroupBox.__init__(self, p(parent))
+        self._stacked_names = QtGui.QComboBox(p(self))
+        # noinspection PyUnresolvedReferences
+        self._stacked_names.currentIndexChanged.connect(self._change_widget)
+        self._stacked_widget = QtGui.QStackedWidget(p(self))
+        MultiForm.__init__(self, initial=initial)
+        self.setTitle(str(self.verbose_name))
+        self.setLayout(v_layout(self, self._stacked_names, self._stacked_widget))
+
+    def set_current(self, index: int, name: str, subform: SubForm):
+        self._stacked_widget.setCurrentIndex(index)
+        self._stacked_names.setCurrentIndex(index)
+
+    def add_form(self, index: int, name: str, subform: SubForm):
+        self._stacked_widget.addWidget(subform)
+        self._stacked_names.addItem(str(subform.verbose_name))
+
+    def _change_widget(self, index):
+        self._stacked_widget.setCurrentIndex(index)
+
+    def set_form_enabled(self, index, name, enabled):
+        pass
+
+
+class ToolboxMultiForm(MultiForm, QtGui.QToolBox):
+    def __init__(self, initial=None, parent=None):
+        QtGui.QToolBox.__init__(self, p(parent))
         MultiForm.__init__(self, initial=initial)
 
-    def set_current(self, index, name, subform):
+    def set_current(self, index: int, name: str, subform: SubForm):
         self.setCurrentIndex(index)
 
-    def add_form(self, index, name, subform):
-        self.addTab(subform, str(subform.verbose_name))
+    def add_form(self, index: int, name: str, subform: SubForm):
+        self.addItem(subform, str(subform.verbose_name))
 
     def set_form_enabled(self, index, name, enabled):
-        self.setTabEnabled(index, enabled)
+        self.setItemEnabled(index, enabled)
 
 
 class InlineForm(QtGui.QWidget):

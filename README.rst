@@ -19,7 +19,6 @@ QtExample
         * MultiChoiceField [QCheckBox]
         * IntegerChoiceField
         * FloatChoiceField
-        * FilepathField
         * PushButton
         * ImageField
         * CharField avec autocompletion
