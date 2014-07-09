@@ -3,7 +3,7 @@ import random
 
 from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
-from qthelpers.forms import FormDialog, Form, TabbedForm, FormTab, TabName
+from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
@@ -34,22 +34,24 @@ class SampleForm(Form):
     int_value = IntegerField(default=42, required=True, verbose_name='Integer value')
     float_value = FloatField(default=10., required=True, verbose_name='Float value')
     float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
+
+    class SampleTabbedWidget(TabbedMultiForm):
+        verbose_name = FormName('Tab subforms')
+
+        class Sub1(SubForm):
+            verbose_name = FormName('first tab')
+            str_value1 = CharField(default='str_value_1', verbose_name='My first string value')
+
+        class Sub2(SubForm):
+            verbose_name = FormName('second tab')
+            str_value2 = CharField(default='str_value_2', verbose_name='My second string value')
+
+        class Sub3(SubForm):
+            verbose_name = FormName('third tab')
+            str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
+
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
     filename = FilepathField(verbose_name='A file path')
-
-
-class SampleTabbedWidget(TabbedForm):
-    class Tab1(FormTab):
-        verbose_name = TabName('first tab')
-        str_value1 = CharField(default='str_value_1', verbose_name='My first string value')
-
-    class Tab2(FormTab):
-        verbose_name = TabName('second tab')
-        str_value2 = CharField(default='str_value_2', verbose_name='My second string value')
-
-    class Tab3(FormTab):
-        verbose_name = TabName('third tab')
-        str_value3 = CharField(default='str_value_3', verbose_name='My third string value')
 
 
 class SampleFormDialog(FormDialog):
@@ -81,7 +83,7 @@ class SampleBaseWindows(BaseMainWindow):
 
     @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
     def test_1(self):
-        SampleFormDialog.get_values(parent=self, extra_widgets=[SampleTabbedWidget(parent=self.parent())])
+        SampleFormDialog.process(parent=self)
 
     # noinspection PyMethodMayBeStatic
     @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')

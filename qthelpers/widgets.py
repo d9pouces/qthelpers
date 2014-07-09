@@ -1,9 +1,12 @@
 # coding=utf-8
 import os
+
 from PySide import QtGui
+
 from qthelpers.shortcuts import h_layout, create_button
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
+
 
 __author__ = 'flanker'
 

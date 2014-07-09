@@ -12,6 +12,9 @@ QtExample
 
     * Nouveaux Field :
         * ButtonField
+        * SpaceField
+        * DescriptionField
+
         * CharChoiceField [QRadioButton | QComboxBox]
         * MultiChoiceField [QCheckBox]
         * IntegerChoiceField
@@ -28,7 +31,6 @@ QtExample
 
     * Nouveaux formulaires :
         * InlineForm
-        * TabbedForm
 
 
 Gestion des docks (avec souvenir des positions)

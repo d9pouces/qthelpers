@@ -22,6 +22,7 @@ class Field(object):
 
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
         self.verbose_name = verbose_name
+        self.name = None
         self.help_text = help_text
         self.default = default
         if validators is None:
@@ -435,13 +436,15 @@ class FieldGroup(object):
         self._fields = {}
         self._values = {}
         fields = []
-        for field_name, field in self.__class__.__dict__.items():
-            if not isinstance(field, Field):
-                continue
-            self._fields[field_name] = field
-            value = initial.get(field_name, field.default)
-            self._values[field_name] = value
-            fields.append((field.group_field_order, field_name))
+        for cls in self.__class__.__mro__:
+            for field_name, field in cls.__dict__.items():
+                if not isinstance(field, Field) or field_name in self._fields:
+                    continue
+                self._fields[field_name] = field
+                field.name = field_name
+                value = initial.get(field_name, field.default)
+                self._values[field_name] = value
+                fields.append((field.group_field_order, field_name))
         fields.sort()
         self._field_order = [f[1] for f in fields]
         self.index = index

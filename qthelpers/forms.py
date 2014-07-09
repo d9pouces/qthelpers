@@ -3,7 +3,7 @@ import functools
 from PySide import QtCore, QtGui
 import itertools
 from qthelpers.exceptions import InvalidValueException
-from qthelpers.fields import FieldGroup, IndexedButtonField
+from qthelpers.fields import FieldGroup, IndexedButtonField, Field
 from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
@@ -11,37 +11,68 @@ from qthelpers.utils import p
 __author__ = 'flanker'
 
 
-class Form(FieldGroup, QtGui.QWidget):
+class FormName(object):
+    counter = itertools.count()
 
-    def __init__(self, initial=None, parent=None):
-        FieldGroup.__init__(self, initial=initial, index=None)
-        QtGui.QWidget.__init__(self, p(parent))
+    def __init__(self, verbose_name=None):
+        # noinspection PyProtectedMember
+        self.index = next(Field._field_counter)
+        self.verbose_name = verbose_name
 
-        # widget creation
-        self._widgets = {}
-        layout = QtGui.QGridLayout(p(parent))
-        for row_index, field_name in enumerate(self._field_order):
-            field = self._fields[field_name]
-            widget = field.get_widget(self)
-            self._widgets[field_name] = widget
-            field.set_widget_value(widget, self._values[field_name])
-            if field.verbose_name:
-                layout.addWidget(QtGui.QLabel(field.verbose_name, p(self)), row_index, 0)
-            layout.addWidget(widget, row_index, 1)
-        self.setLayout(layout)
+    def __str__(self):
+        return self.verbose_name
 
-    def get_widget(self, field_name):
-        return self._widgets[field_name]
+
+class MultiForm(object):
+    verbose_name = None  # FormName('')
+
+    def __init__(self, initial=None):
+        """
+        :param initial: Dictionnary of initial values
+        :return:
+        """
+        self._subforms_by_name = {}
+        self._subforms_list = []
+        self._values = {}
+        for cls in self.__class__.__mro__:
+            for subform_name, subform_class in cls.__dict__.items():
+                if isinstance(subform_class, type) and issubclass(subform_class, SubForm) \
+                        and subform_name not in self._subforms_by_name:
+                    subform = subform_class(initial=initial)
+                    """:type: SubForm"""
+                    self._subforms_by_name[subform_name] = subform
+                    self._subforms_list.append((subform_name, subform))
+        self._subforms_list.sort(key=lambda x: getattr(x[1].verbose_name, 'index', 0))
+        for subform_index, (subform_name, subform) in enumerate(self._subforms_list):
+            self.add_form(subform_index, subform_name, subform)
+            self.set_form_enabled(subform_index, subform, bool(subform.enabled))
+
+    def __getattribute__(self, item: str):
+        if not item.startswith('_') and item in self._subforms_by_name:
+            return self._subforms_by_name[item]
+        return super().__getattribute__(item)
+
+    def set_current(self, index, name, subform):
+        raise NotImplementedError
+
+    def add_form(self, index, name, subform):
+        raise NotImplementedError
+
+    def set_form_enabled(self, index, name, enabled):
+        raise NotImplementedError
 
     def is_valid(self):
         valid = True
-        for field_name, field in self._fields.items():
-            widget = self._widgets[field_name]
-            try:
-                setattr(self, field_name, field.get_widget_value(widget))
-                field.set_widget_valid(widget, True, '')
-            except InvalidValueException as e:
-                field.set_widget_valid(widget, False, str(e))
+        self._values = {}
+        for subform_index, subform_data in enumerate(self._subforms_list):
+            subform_name, subform = subform_data
+            """:type: (int, FormTab)"""
+            if subform.is_valid():
+                self._values.update(subform.get_values())
+            elif valid:
+                self.set_current(subform_index, str(subform.verbose_name), subform)
+                valid = False
+            else:
                 valid = False
         return valid
 
@@ -49,100 +80,116 @@ class Form(FieldGroup, QtGui.QWidget):
         return self._values
 
 
-class TabName(object):
-    counter = itertools.count()
+class BaseForm(FieldGroup):
 
-    def __init__(self, verbose_name=None):
-        self.index = next(TabName.counter)
-        self.verbose_name = verbose_name
+    def __init__(self, initial=None):
+        FieldGroup.__init__(self, initial=initial)
+        self._multiforms = {}
+        self._widgets = {}
+        # retrieve all MultiForm classes from class definitions
+        for cls in self.__class__.__mro__:
+            for name, subcls in cls.__dict__.items():
+                if not isinstance(subcls, type) or not issubclass(subcls, MultiForm) or name in self._multiforms:
+                    continue
+                self._multiforms[name] = subcls(initial=initial, parent=self)
 
-    def __str__(self):
-        return self.verbose_name
-
-
-class FormTab(Form):
-    verbose_name = None   # TabName(_('My Tab Name'))
-    enabled = True
-
-
-class TabbedForm(QtGui.QTabWidget):
-    def __init__(self, initial=None, parent=None):
-        """
-        :param initial: Dictionnary of initial dicts, one for each subwidget
-        :param parent:
+    def _fill_grid_layout(self, layout: QtGui.QGridLayout):
+        """ Fill a QGridLayout with all MultiForms and Field, in the right order
+        :param layout:
         :return:
         """
-        super().__init__(p(parent))
-        self._tabforms = {}
-        self._tabs = []
-        self._values = {}
-        if initial is None:
-            initial = {}
-        for cls in self.__class__.__mro__:
-            for tab_name, tab_class in cls.__dict__.items():
-                if isinstance(tab_class, type) and issubclass(tab_class, FormTab) and tab_name not in self._tabforms:
-                    tab = tab_class(initial.get(tab_name, {}))
-                    """:type: FormTab"""
-                    self._tabforms[tab_name] = tab
-                    self._tabs.append(tab)
-        self._tabs.sort(key=lambda x: getattr(x.verbose_name, 'index', 0))
-        for index, tab in enumerate(self._tabs):
-            self.addTab(tab, str(tab.verbose_name))
-            self.setTabEnabled(index, bool(tab.enabled))
-
-    def __getattribute__(self, item: str):
-        if not item.startswith('_') and item in self._tabforms:
-            return self._tabforms[item]
-        return super().__getattribute__(item)
+        all_components = []
+        for multiform in self._multiforms.values():
+            all_components.append(multiform)
+        for field in self._fields.values():
+            all_components.append(field)
+        all_components.sort(key=self._sort_components)
+        row_offset = layout.rowCount()
+        for row_index, obj in enumerate(all_components):
+            if isinstance(obj, MultiForm):  # a MultiForm already is a QWidget
+                layout.addWidget(obj, row_offset + row_index, 0, 1, 2)
+            else:
+                widget = obj.get_widget(self, self)
+                self._widgets[obj.name] = widget
+                obj.set_widget_value(widget, self._values[obj.name])
+                if obj.verbose_name:
+                    layout.addWidget(QtGui.QLabel(obj.verbose_name, p(self)), row_offset + row_index, 0)
+                layout.addWidget(widget, row_offset + row_index, 1)
 
     def is_valid(self):
         valid = True
-        values = {}
-        for index, tab in enumerate(self._tabs):
-            """:type: (int, FormTab)"""
-            if tab.is_valid():
-                values.update(tab.get_values())
-            elif valid:
-                self.setCurrentIndex(index)
+        self._values = {}
+        for field_name, field in self._fields.items():
+            widget = self._widgets[field_name]
+            try:
+                setattr(self, field_name, field.get_widget_value(widget))
+                field.set_widget_valid(widget, True, '')
+                self._values[field_name] = field.get_widget_value(widget)
+            except InvalidValueException as e:
+                field.set_widget_valid(widget, False, str(e))
                 valid = False
+        for multiform in self._multiforms.values():
+            if multiform.is_valid():
+                self._values.update(multiform.get_values())
             else:
                 valid = False
-        return values if valid else None
+        return valid
+
+    def get_widget(self, field_name):  # TODO rechercher dans les multiforms
+        return self._widgets[field_name]
+
+    def get_multiform(self, multiform_name):
+        return self._multiforms[multiform_name]
 
     def get_values(self):
         return self._values
 
+    @staticmethod
+    def _sort_components(obj) -> int:
+        if isinstance(obj, MultiForm):
+            return getattr(obj.verbose_name, 'index', 0)
+        return obj.group_field_order
 
-class FormDialog(FieldGroup, QtGui.QDialog):
+
+class Form(BaseForm, QtGui.QWidget):
+
+    def __init__(self, initial=None, parent=None):
+        BaseForm.__init__(self, initial=initial)
+        QtGui.QWidget.__init__(self, p(parent))
+        layout = QtGui.QGridLayout(p(parent))
+        self._fill_grid_layout(layout)
+        self.setLayout(layout)
+
+
+class SubForm(Form):
+    verbose_name = None   # TabName(_('My Tab Name'))
+    enabled = True
+
+
+# class MyDialog(GenericForm):
+#     field_1 = CharField()
+#     class tabs(MultiForm):
+#         class tab_1(SubForm):
+#             verbose_name = FormName('First Tab')
+#             field_str_1 = CharField()
+
+
+class FormDialog(BaseForm, QtGui.QDialog):
     verbose_name = None
     description = None
     text_confirm = _('Yes')
     text_cancel = _('Cancel')
 
-    def __init__(self, initial=None, parent=None, extra_widgets=None):
-        FieldGroup.__init__(self, initial=initial, index=None)
+    def __init__(self, initial=None, parent=None):
         QtGui.QDialog.__init__(self, p(parent))
-
+        BaseForm.__init__(self, initial=initial)
         # widget creation
-        self._widgets = {}
         widgets = []
         if self.description:
             widgets.append(QtGui.QLabel(self.description, p(self)))
-
         sub_layout = QtGui.QGridLayout(self)
-        for row_index, field_name in enumerate(self._field_order):
-            field = self._fields[field_name]
-            widget = field.get_widget(self, self)
-            self._widgets[field_name] = widget
-            field.set_widget_value(widget, self._values[field_name])
-            if field.verbose_name:
-                sub_layout.addWidget(QtGui.QLabel(field.verbose_name, p(self)), row_index, 0)
-            sub_layout.addWidget(widget, row_index, 1)
-
+        self._fill_grid_layout(layout=sub_layout)
         widgets.append(sub_layout)
-        if extra_widgets:
-            for widget in extra_widgets:
-                widgets.append(widget)
         self._buttons = []
         if self.text_confirm:
             self._buttons.append(create_button(self.text_confirm, connect=self.accept, min_size=True))
@@ -151,18 +198,16 @@ class FormDialog(FieldGroup, QtGui.QDialog):
         if self._buttons:
             widgets.append(h_layout(self, *self._buttons))
         self.setLayout(v_layout(self, *widgets))
-
         if self.verbose_name:
-            self.setWindowTitle(self.verbose_name)
+            self.setWindowTitle(str(self.verbose_name))
         self.raise_()
 
     @classmethod
-    def get_values(cls, initial=None, parent=None, extra_widgets=None):
-        dialog = cls(initial=initial, parent=parent, extra_widgets=extra_widgets)
+    def process(cls, initial=None, parent=None):
+        dialog = cls(initial=initial, parent=parent)
         result = dialog.exec_()
         if result == QtGui.QDialog.Accepted:
-            # noinspection PyProtectedMember
-            return dialog._values
+            return dialog.get_values()
         return None
 
     def accept(self):
@@ -170,17 +215,35 @@ class FormDialog(FieldGroup, QtGui.QDialog):
             return
         return QtGui.QDialog.accept(self)
 
-    def is_valid(self):
-        valid = True
-        for field_name, field in self._fields.items():
-            widget = self._widgets[field_name]
-            try:
-                setattr(self, field_name, field.get_widget_value(widget))
-                field.set_widget_valid(widget, True, '')
-            except InvalidValueException as e:
-                field.set_widget_valid(widget, False, str(e))
-                valid = False
-        return valid
+
+class TabbedMultiForm(MultiForm, QtGui.QTabWidget):
+    def __init__(self, initial=None, parent=None):
+        QtGui.QTabWidget.__init__(self, p(parent))
+        MultiForm.__init__(self, initial=initial)
+
+    def set_current(self, index, name, subform):
+        self.setCurrentIndex(index)
+
+    def add_form(self, index, name, subform):
+        self.addTab(subform, str(subform.verbose_name))
+
+    def set_form_enabled(self, index, name, enabled):
+        self.setTabEnabled(index, enabled)
+
+
+class StackeddMultiForm(MultiForm, QtGui.QStackedWidget):
+    def __init__(self, initial=None, parent=None):
+        QtGui.QStackedWidget.__init__(self, p(parent))
+        MultiForm.__init__(self, initial=initial)
+
+    def set_current(self, index, name, subform):
+        self.setCurrentIndex(index)
+
+    def add_form(self, index, name, subform):
+        self.addTab(subform, str(subform.verbose_name))
+
+    def set_form_enabled(self, index, name, enabled):
+        self.setTabEnabled(index, enabled)
 
 
 class InlineForm(QtGui.QWidget):
