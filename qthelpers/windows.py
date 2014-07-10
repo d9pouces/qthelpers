@@ -9,13 +9,28 @@ import time
 
 from qthelpers.application import application
 from qthelpers.menus import registered_menu_actions, registered_menus, menu_item, MenuAction
-from qthelpers.shortcuts import get_icon, warning
+from qthelpers.shortcuts import get_icon, warning, v_layout, get_pixmap, create_button
 from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
 
-
 __author__ = 'flanker'
+
+
+class AboutWindow(QtGui.QDialog):
+    def __init__(self, message, parent=None):
+        super().__init__(p(parent))
+        widgets = []
+        if application.splashscreen_icon:
+            pixmap = get_pixmap(application.splashscreen_icon)
+            label = QtGui.QLabel(p(self))
+            label.setPixmap(pixmap)
+            widgets.append(label)
+            edit = QtGui.QTextEdit(message, self)
+            edit.setReadOnly(True)
+            widgets.append(edit)
+        widgets.append(create_button(_('Close'), min_size=True, parent=self, connect=self.close))
+        self.setLayout(v_layout(self, *widgets))
 
 
 class BaseMainWindow(QtGui.QMainWindow):
@@ -227,6 +242,10 @@ class SingleDocumentWindow(BaseMainWindow):
         self.current_document_is_modified = False
         self.base_window_title()
         self.base_add_recent_filename()
+
+    @menu_item(verbose_name=_('About'), menu=_('Help'))
+    def base_about(self):
+        application.about()
 
     def base_add_recent_filename(self):
         new_filename = self.current_document_filename

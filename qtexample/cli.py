@@ -1,5 +1,6 @@
 import argparse
 import random
+import time
 
 from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
@@ -10,6 +11,11 @@ from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
 
 
 __author__ = 'flanker'
+about_message = '''
+Sample application
+
+<i>flanker</i>
+'''
 
 
 class SampleApplication(SingleDocumentApplication):
@@ -17,6 +23,8 @@ class SampleApplication(SingleDocumentApplication):
     application_version = '0.1'
     description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
     systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    splashscreen_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    about_message = about_message
 
     @menu_item(submenu=False)
     def test_systray(self):
@@ -27,6 +35,9 @@ class SampleApplication(SingleDocumentApplication):
 
     def systray_activated(self, reason):
         print('systray activated', reason)
+
+    def load_data(self):
+        time.sleep(0.1)
 
 
 class SampleForm(Form):

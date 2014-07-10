@@ -18,17 +18,22 @@ def __generic_layout(parent, layout, args):
     return layout
 
 
-def v_layout(parent, *args):
+def v_layout(parent, *args, direction=None):
     layout = QtGui.QVBoxLayout(None)
+    if direction is not None:
+        layout.setDirection(direction)
     return __generic_layout(parent, layout, args)
 
 
-def h_layout(parent, *args):
+def h_layout(parent, *args, direction=None):
     layout = QtGui.QHBoxLayout(None)
+    if direction is not None:
+        layout.setDirection(direction)
     return __generic_layout(parent, layout, args)
 
 
 __ICON_CACHE = {}
+__PIXMAP_CACHE = {}
 
 
 def get_icon(icon_name):
@@ -42,6 +47,19 @@ def get_icon(icon_name):
     icon = QtGui.QIcon(pkg_resources.resource_filename(modname, filename))
     __ICON_CACHE[icon] = icon
     return icon
+
+
+def get_pixmap(pixmap_name):
+    if pixmap_name in __PIXMAP_CACHE:
+        return __PIXMAP_CACHE[pixmap_name]
+    from qthelpers.preferences import preferences
+    modname, sep, filename = pixmap_name.partition(':')
+    theme_key = preferences.selected_theme_key
+    if theme_key is not None:
+        filename = filename % {'THEME': preferences()[theme_key]}
+    pixmap = QtGui.QPixmap(pkg_resources.resource_filename(modname, filename))
+    __PIXMAP_CACHE[pixmap] = pixmap
+    return pixmap
 
 
 def get_theme_icon(name, icon_name):
@@ -61,7 +79,7 @@ def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=
     else:
         button = QtGui.QPushButton(legend, p(parent))
     if min_size:
-        button.setMinimumSize(button.minimumSize())
+        button.setFixedSize(button.minimumSizeHint())
     if help_text:
         button.setToolTip(help_text)
     button.setFlat(flat)

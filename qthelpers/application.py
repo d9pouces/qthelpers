@@ -1,24 +1,29 @@
 #coding=utf-8
 import os
 
-from PySide import QtGui
+from PySide import QtGui, QtCore
 from qthelpers import fields
 
 from qthelpers.menus import registered_menus, registered_menu_actions
 from qthelpers.preferences import Preferences, GlobalObject, global_dict, Section
-from qthelpers.shortcuts import get_icon
-
+from qthelpers.shortcuts import get_icon, get_pixmap
+from qthelpers.translation import ugettext as _
 
 __author__ = 'flanker'
 application_key = 'application'
 application = GlobalObject(application_key)
+""":type: BaseApplication"""
 
 
 class BaseApplication(Preferences):
     application = None
     systray = None
+    splashscreen = None
     description_icon = None
     application_version = None
+    splashscreen_icon = None
+    about_message = ''
+    about_window = None
     systemtray_icon = None
     windows = {}
 
@@ -64,9 +69,17 @@ class BaseApplication(Preferences):
             self.systray.activated.connect(self.systray_activated)
             # noinspection PyUnresolvedReferences
             self.systray.messageClicked.connect(self.systray_message_clicked)
+        if self.splashscreen_icon:
+            self.splashscreen = QtGui.QSplashScreen(self.parent, get_pixmap(self.splashscreen_icon),
+                                                    QtCore.Qt.WindowStaysOnTopHint)
+            self.splashscreen.showMessage(_('Loading data…'))
+            self.splashscreen.show()
 
-            # noinspection PyUnresolvedReferences
-            self.application.lastWindowClosed.connect(self.save)
+        # noinspection PyUnresolvedReferences
+        self.application.lastWindowClosed.connect(self.save)
+        self.load_data()
+        if self.splashscreen is not None:
+            self.splashscreen.hide()
 
     def exec_(self):
         self.application.exec_()
@@ -82,6 +95,15 @@ class BaseApplication(Preferences):
 
     def systray_activated(self, reason):
         pass
+
+    def load_data(self):
+        pass
+
+    def about(self):
+        if self.about_window is None:
+            from qthelpers.windows import AboutWindow
+            self.about_window = AboutWindow(self.about_message)
+        self.about_window.show()
 
 
 class SingleDocumentApplication(BaseApplication):

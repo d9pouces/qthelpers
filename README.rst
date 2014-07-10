@@ -3,12 +3,11 @@ QtExample
 
     * logging
 
-    * Fenêtre de préférences
+    * Fenêtre de préférences générique
     * Fenêtre à propos de
     * Application mono-fenêtre
     * Icônes de base
-
-    * QSplashScreen avec QProgressBar
+    * Status bar
 
     * Nouveaux Field :
         * ButtonField
@@ -37,4 +36,4 @@ Gestion des docks (avec souvenir des positions)
 Préférences de base :
     * position des fenêtres par type (taille et position)
     * gestion de la toolbar (boutons désactivés)
-    *
+    * gestion des raccourcis claviers

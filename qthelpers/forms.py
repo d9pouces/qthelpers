@@ -204,7 +204,7 @@ class FormDialog(BaseForm, QtGui.QDialog):
         if self.text_cancel:
             self._buttons.append(create_button(self.text_cancel, connect=self.reject, min_size=True))
         if self._buttons:
-            widgets.append(h_layout(self, *self._buttons))
+            widgets.append(h_layout(self, *self._buttons, direction=QtGui.QBoxLayout.RightToLeft))
         self.setLayout(v_layout(self, *widgets))
         if self.verbose_name:
             self.setWindowTitle(str(self.verbose_name))
