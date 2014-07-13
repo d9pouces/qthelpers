@@ -24,7 +24,6 @@ class FormName(object):
 
 
 class BaseForm(FieldGroup):
-
     def __init__(self, initial=None):
         FieldGroup.__init__(self, initial=initial)
         self._multiforms = {}
@@ -32,9 +31,8 @@ class BaseForm(FieldGroup):
         # retrieve all MultiForm classes from class definitions
         for cls in self.__class__.__mro__:
             for name, subcls in cls.__dict__.items():
-                if not isinstance(subcls, type) or \
-                        (not issubclass(subcls, MultiForm) and not issubclass(subcls, SubForm)) or \
-                        name in self._multiforms:
+                if not isinstance(subcls, type) or (not issubclass(subcls, MultiForm)
+                                                    and not issubclass(subcls, SubForm)) or name in self._multiforms:
                     continue
                 self._multiforms[name] = subcls(initial=initial, parent=self)
 
@@ -103,7 +101,6 @@ class BaseForm(FieldGroup):
 
 
 class Form(BaseForm, QtGui.QWidget):
-
     def __init__(self, initial=None, parent=None):
         BaseForm.__init__(self, initial=initial)
         QtGui.QWidget.__init__(self, p(parent))
@@ -113,12 +110,12 @@ class Form(BaseForm, QtGui.QWidget):
 
 
 class SubForm(Form):
-    verbose_name = None   # TabName(_('My Tab Name'))
+    verbose_name = None  # TabName(_('My Tab Name'))
     enabled = True
 
 
 # class MyDialog(GenericForm):
-#     field_1 = CharField()
+# field_1 = CharField()
 #     class tabs(MultiForm):
 #         class tab_1(SubForm):
 #             verbose_name = FormName('First Tab')
@@ -287,9 +284,9 @@ class InlineForm(QtGui.QWidget):
         super(InlineForm, self).__init__()
         self.__list_of_values = list_of_values
         self.__attributes = [IndexedButtonField(verbose_name=_('Add element'), icon='edit_add',
-                                         connect=self.__add_item),
+                                                connect=self.__add_item),
                              IndexedButtonField(verbose_name=_('Remove element'), icon='edit_remove',
-                                         connect=self.__remove_item)]
+                                                connect=self.__remove_item)]
         layout = QtGui.QGridLayout()
         if title:
             layout.addWidget(QtGui.QLabel(title), 0, 0)

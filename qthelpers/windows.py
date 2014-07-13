@@ -8,9 +8,10 @@ from PySide import QtGui, QtCore
 import time
 
 from qthelpers.application import application
+from qthelpers.docks import BaseDock
 from qthelpers.menus import registered_menu_actions, registered_menus, menu_item, MenuAction
 from qthelpers.shortcuts import get_icon, warning, v_layout, get_pixmap, create_button
-from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions
+from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions, toolbar_item
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
 
@@ -36,6 +37,7 @@ class AboutWindow(QtGui.QDialog):
 class BaseMainWindow(QtGui.QMainWindow):
     description_icon = None
     verbose_name = _('Main application window')
+    docks = []  # list of subclasses of qthelpers.docks.BaseDock
     _window_counter = itertools.count()
     generic_signal = QtCore.Signal(list)
 
@@ -43,6 +45,7 @@ class BaseMainWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self, p(parent))
 
         self._window_id = next(BaseMainWindow._window_counter)
+        self._docks = {}
         application.windows[self._window_id] = self
 
         # retrieve menus and associated actions from the whole class hierarchy
@@ -84,6 +87,16 @@ class BaseMainWindow(QtGui.QMainWindow):
                 created_action_keys.add(toolbar_action.uid)
                 toolbar_action.create(self, defined_qtoolbars[toolbar_action.toolbar])
 
+        # create all dock widgets
+        for dock_cls in self.docks:
+            """:type dock_cls: type"""
+            if not isinstance(dock_cls, type) or not issubclass(dock_cls, BaseDock):
+                continue
+            dock = dock_cls(parent=self)
+            """:type dock: BaseDock"""
+            self._docks[dock_cls] = dock
+            self.addDockWidget(dock.default_position, dock)
+
         # some extra stuff
         self.setWindowTitle(self.verbose_name)
         if self.description_icon:
@@ -122,11 +135,12 @@ class SingleDocumentWindow(BaseMainWindow):
         self.current_document_is_modified = False  # your responsibility!
         self.base_stop_threads = False
         self.base_threads = []
+        self.statusBar()
+        self._indicators = {}
         if filename:
             self.base_open_document(filename)
         else:
             self.base_new_document()
-
         auto_save = threading.Thread(target=self.base_auto_save_thread, name='auto_save')
         auto_save.start()
         self.base_threads.append(auto_save)
@@ -145,6 +159,26 @@ class SingleDocumentWindow(BaseMainWindow):
         for thread in self.base_threads:
             thread.join()
 
+    def base_set_sb_indicator(self, key, icon_name=None, message=None):
+        if key not in self._indicators:
+            label = QtGui.QLabel(p(self))
+            statusbar = self.statusBar()
+            """:type: QtGui.QStatusBar"""
+            statusbar.insertPermanentWidget(len(self._indicators), label, 0)
+            self._indicators[key] = label
+        else:
+            label = self._indicators[key]
+            """:type: QtGui.Label"""
+        if icon_name is not None:
+            label.setPixmap(get_pixmap(icon_name))
+        if message is not None:
+            label.setText(message)
+
+    def base_set_sb_message(self, message, msecs=0):
+        status = self.statusBar()
+        """:type: QtGui.QStatusBar"""
+        status.showMessage(message, msecs)
+
     def base_auto_save_thread(self):
         while True:
             interval = application.GlobalInfos.auto_save_interval
@@ -162,6 +196,7 @@ class SingleDocumentWindow(BaseMainWindow):
                     self.generic_signal.emit([self.base_save_document])
 
     @menu_item(verbose_name=_('New document'), menu=_('File'), shortcut='Ctrl+N')
+    @toolbar_item(verbose_name=_('New document'), icon='document-new')
     def base_new_document(self):
         self.unload_document()
         self.current_document_filename = None
@@ -170,6 +205,7 @@ class SingleDocumentWindow(BaseMainWindow):
         self.create_document()
 
     @menu_item(verbose_name=_('Open…'), menu=_('File'), shortcut='Ctrl+O')
+    @toolbar_item(verbose_name=_('Open…'), icon='document-open')
     def base_open_document(self, filename=None):
         if not filename:
             # noinspection PyCallByClass
@@ -211,6 +247,7 @@ class SingleDocumentWindow(BaseMainWindow):
         self.close()
 
     @menu_item(verbose_name=_('Save document'), menu=_('File'), shortcut='Ctrl+S')
+    @toolbar_item(verbose_name=_('Open…'), icon='document-save')
     def base_save_document(self, filename=None):
         if filename:
             self.current_document_filename = filename
@@ -243,6 +280,11 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_window_title()
         self.base_add_recent_filename()
 
+    @menu_item(verbose_name=_('New window'), menu=_('Window'))
+    def base_new_window(self):
+        new_window = self.__class__()
+        new_window.show()
+
     @menu_item(verbose_name=_('About'), menu=_('Help'))
     def base_about(self):
         application.about()
@@ -258,9 +300,12 @@ class SingleDocumentWindow(BaseMainWindow):
         while len(application.GlobalInfos.last_documents) > self.base_max_recent_documents:
             del application.GlobalInfos.last_documents[self.base_max_recent_documents]
 
-    def base_mark_document_as_modified(self):
-        if not self.current_document_is_modified:
+    def base_mark_document_as_modified(self, modified=True):
+        if not self.current_document_is_modified and modified:
             self.current_document_is_modified = True
+            self.base_window_title()
+        elif self.current_document_is_modified and not modified:
+            self.current_document_is_modified = False
             self.base_window_title()
 
     def base_window_title(self):

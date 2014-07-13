@@ -52,7 +52,10 @@ def slugify(value):
 class Preferences(object):
     organization_name = None
     verbose_name = None
-    selected_theme_key = None   # %(THEME)s will be replaced by the value of preferences.selected_theme_key
+    icon_theme_key = None   # %(theme)s will be replaced by the value of preferences.selected_theme_key
+    icon_pattern = 'resources/%(theme)s/%(name)s.png'
+    icon_search_modules = ['qtexample', 'qthelpers', ]
+    icon_use_global_theme = True
     organization_domain = None
 
     def __init__(self):

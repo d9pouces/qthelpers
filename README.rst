@@ -4,10 +4,8 @@ QtExample
     * logging
 
     * Fenêtre de préférences générique
-    * Fenêtre à propos de
     * Application mono-fenêtre
     * Icônes de base
-    * Status bar
 
     * Nouveaux Field :
         * ButtonField
@@ -31,9 +29,13 @@ QtExample
         * InlineForm
 
 
-Gestion des docks (avec souvenir des positions)
+Trouver une solution pour l'ordre des menus
 
 Préférences de base :
     * position des fenêtres par type (taille et position)
     * gestion de la toolbar (boutons désactivés)
+    * position des docks
     * gestion des raccourcis claviers
+    * apparence : thème, Qt.ToolButtonStyle
+
+    gestion des docks (ajouter une entrée dans les menus)

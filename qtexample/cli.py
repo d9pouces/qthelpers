@@ -3,6 +3,7 @@ import random
 import time
 
 from qthelpers.application import application, SingleDocumentApplication
+from qthelpers.docks import FormDock
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
 from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm, StackedMultiForm, ToolboxMultiForm
 from qthelpers.menus import MenuAction, menu_item
@@ -21,9 +22,9 @@ Sample application
 class SampleApplication(SingleDocumentApplication):
     verbose_name = 'Sample Application'
     application_version = '0.1'
-    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
-    systemtray_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
-    splashscreen_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'browser'
+    systemtray_icon = 'browser'
+    splashscreen_icon = 'browser'
     about_message = about_message
 
     @menu_item(submenu=False)
@@ -38,6 +39,12 @@ class SampleApplication(SingleDocumentApplication):
 
     def load_data(self):
         time.sleep(0.1)
+
+
+class SampleDock(FormDock):
+    verbose_name = 'Dock title'
+    description = 'Dock description'
+    str_value = CharField(verbose_name='Simple str value', default='String')
 
 
 class SampleForm(Form):
@@ -108,10 +115,11 @@ class SampleFormDialog(FormDialog):
 
 
 class SampleBaseWindows(BaseMainWindow):
-    description_icon = 'qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'browser'
+    docks = [SampleDock]
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
-    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
+    @toolbar_item(icon='browser')
     def test_menu_1(self):
         print('test_menu_1')
 
@@ -122,12 +130,12 @@ class SampleBaseWindows(BaseMainWindow):
             MenuAction(self.test_2, verbose_name='Test systray %d' % random.randint(1, 65536), menu=''),
         ]
 
-    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
+    @toolbar_item(icon='browser')
     def test_1(self):
         SampleFormDialog.process(parent=self)
 
     # noinspection PyMethodMayBeStatic
-    @toolbar_item(icon='qthelpers:resources/icons/ToolbarDocumentsFolderIcon.png')
+    @toolbar_item(icon='browser')
     def test_2(self):
         application.systray.showMessage('Systray message title', 'Systray message')
 
@@ -167,10 +175,13 @@ class SampleDocumentWindow(SingleDocumentWindow):
         It's your responsibility to update self.current_document_is_modified to True
         :return:
         """
+        self.base_set_sb_indicator('key', message='NOT MODIFIED')
         return True
 
     @menu_item(menu='TestMenu', verbose_name='Mark as modified')
     def test_menu_2(self):
+        self.base_set_sb_indicator('key', message='MODIFIED')
+        self.base_set_sb_message('short message', 10000)
         self.base_mark_document_as_modified()
 
     def central_widget(self):

@@ -1,7 +1,6 @@
 # coding=utf-8
 from PySide import QtGui
 import pkg_resources
-import sys
 from qthelpers.utils import p
 
 __author__ = 'flanker'
@@ -36,30 +35,35 @@ __ICON_CACHE = {}
 __PIXMAP_CACHE = {}
 
 
-def get_icon(icon_name):
-    if icon_name in __ICON_CACHE:
-        return __ICON_CACHE[icon_name]
+def __get_picture(picture_name, cache_dict, picture_class):
+    if picture_name in cache_dict:
+        return cache_dict[picture_name]
     from qthelpers.preferences import preferences
-    modname, sep, filename = icon_name.partition(':')
-    theme_key = preferences.selected_theme_key
+    if preferences.icon_use_global_theme and QtGui.QIcon.hasThemeIcon(picture_name) and picture_class == QtGui.QIcon:
+        icon = QtGui.QIcon.fromTheme(picture_name)
+        __ICON_CACHE[picture_name] = icon
+    theme_key = preferences.icon_theme_key
     if theme_key is not None:
-        filename = filename % {'THEME': preferences()[theme_key]}
-    icon = QtGui.QIcon(pkg_resources.resource_filename(modname, filename))
-    __ICON_CACHE[icon] = icon
+        filename = preferences.icon_pattern % {'theme': preferences[theme_key], 'name': picture_name}
+    else:
+        filename = preferences.icon_pattern % {'name': picture_name}
+    for modname in preferences.icon_search_modules:
+        if pkg_resources.resource_exists(modname, filename):
+            fullpath = pkg_resources.resource_filename(modname, filename)
+            break
+    else:
+        raise FileNotFoundError
+    icon = picture_class(fullpath)
+    cache_dict[picture_name] = icon
     return icon
 
 
+def get_icon(icon_name):
+    return __get_picture(icon_name, __ICON_CACHE, QtGui.QIcon)
+
+
 def get_pixmap(pixmap_name):
-    if pixmap_name in __PIXMAP_CACHE:
-        return __PIXMAP_CACHE[pixmap_name]
-    from qthelpers.preferences import preferences
-    modname, sep, filename = pixmap_name.partition(':')
-    theme_key = preferences.selected_theme_key
-    if theme_key is not None:
-        filename = filename % {'THEME': preferences()[theme_key]}
-    pixmap = QtGui.QPixmap(pkg_resources.resource_filename(modname, filename))
-    __PIXMAP_CACHE[pixmap] = pixmap
-    return pixmap
+    return __get_picture(pixmap_name, __PIXMAP_CACHE, QtGui.QPixmap)
 
 
 def get_theme_icon(name, icon_name):

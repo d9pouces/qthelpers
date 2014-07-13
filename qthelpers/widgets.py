@@ -16,7 +16,8 @@ class FilepathWidget(QtGui.QWidget):
         self.selection_filter = selection_filter
         self.filename = None
         super().__init__(parent)
-        self.select_button = create_button(_('Choose a file…'), min_size=True, connect=self.select_file)
+        self.select_button = create_button(_('Choose a file…'), min_size=True, connect=self.select_file,
+                                           icon='edit-find')
         self.line_editor = QtGui.QLineEdit(p(self))
         self.set_value(filename)
         layout = h_layout(self, self.select_button, self.line_editor)
