@@ -130,6 +130,13 @@ class BaseMainWindow(QtGui.QMainWindow):
             """:type dock: BaseDock"""
             self._docks[dock_cls] = dock
             self.addDockWidget(dock.default_position, dock)
+            menu_name = dock.menu
+            if menu_name is not None:
+                if menu_name not in defined_qmenus:
+                    defined_qmenus[menu_name] = menubar.addMenu(menu_name)
+                    connect = functools.partial(self._base_swap_dock_display, dock_cls)
+                    action = MenuAction(connect, verbose_name=dock.verbose_name, menu=menu_name, shortcut=dock.shortcut)
+                    action.create(self, defined_qmenus[menu_name])
 
         # some extra stuff
         self.setWindowTitle(self.verbose_name)
@@ -140,6 +147,14 @@ class BaseMainWindow(QtGui.QMainWindow):
         self.generic_signal.connect(self.generic_slot)
         self.adjustSize()
         self.raise_()
+
+    def _base_swap_dock_display(self, dock_cls):
+        dock = self._docks[dock_cls]
+        """:type: qthelpers.docks.BaseDock"""
+        if dock.isHidden():
+            dock.show()
+        else:
+            dock.hide()
 
     def central_widget(self):
         raise NotImplementedError
@@ -181,7 +196,7 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_threads.append(auto_save)
 
     def closeEvent(self, event: QtCore.QEvent):
-        if self._is_modified():
+        if self._base_check_is_modified():
             event.ignore()
             return
         self.unload_document()
@@ -235,7 +250,7 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_window_title()
         self.create_document()
 
-    def _is_modified(self):
+    def _base_check_is_modified(self):
         return self.current_document_is_modified and not warning(_('The document has been modified'),
                                                                  _('The current document has been modified. '
                                                                  'Any change will be lost if you close it. '
@@ -244,7 +259,7 @@ class SingleDocumentWindow(BaseMainWindow):
     @menu_item(verbose_name=_('Open…'), menu=_('File'), shortcut='Ctrl+O')
     @toolbar_item(verbose_name=_('Open…'), icon='document-open')
     def base_open_document(self, filename=None):
-        if self._is_modified():
+        if self._base_check_is_modified():
             return False
         if not filename:
             # noinspection PyCallByClass
@@ -284,7 +299,7 @@ class SingleDocumentWindow(BaseMainWindow):
 
     @menu_item(verbose_name=_('Close document'), menu=_('File'), sep=True, shortcut='Ctrl+W')
     def base_close_document(self):
-        if self._is_modified():
+        if self._base_check_is_modified():
             return False
         return self.close()
 

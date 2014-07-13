@@ -12,11 +12,16 @@ __author__ = 'flanker'
 
 class BaseDock(QtGui.QDockWidget):
     verbose_name = None
+    menu = None
+    shortcut = None
     default_position = QtCore.Qt.RightDockWidgetArea
 
     def __init__(self, parent=None):
         QtGui.QDockWidget.__init__(self, str(self.verbose_name), p(parent))
         self.parent_window = weakref.ref(parent)
+
+    def close(self):
+        return self.hide()
 
 
 class FormDock(BaseForm, BaseDock):

@@ -17,7 +17,7 @@ class MenuAction(object):
                  shortcut: str=None, help_text: str=None, submenu: bool=False, uid: str=None):
         """
         Description of a menu action.
-        :param method_name: any callable or (method name of the window)
+        :param method_name: any callable or (method name of the window) or (class)
             if submenu is True, then this callable (or method) must return an iterable of MenuAction
         :param verbose_name: str, or the raw name of the function by default.
         :param icon: str (of the form "modname:folder/%(THEME)s/picture.png") or QtGui.QIcon object

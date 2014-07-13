@@ -36,6 +36,4 @@ Préférences de base :
     * gestion de la toolbar (boutons désactivés)
     * position des docks
     * gestion des raccourcis claviers
-    * apparence : thème, Qt.ToolButtonStyle
-
-    gestion des docks (ajouter une entrée dans les menus)
+    * apparence : Qt.ToolButtonStyle

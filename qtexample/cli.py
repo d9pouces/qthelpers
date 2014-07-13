@@ -44,6 +44,7 @@ class SampleApplication(SingleDocumentApplication):
 class SampleDock(FormDock):
     verbose_name = 'Dock title'
     description = 'Dock description'
+    menu = 'Window'
     str_value = CharField(verbose_name='Simple str value', default='String')
 
 
