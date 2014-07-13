@@ -9,6 +9,8 @@ import time
 
 from qthelpers.application import application
 from qthelpers.docks import BaseDock
+from qthelpers.fields import ChoiceField
+from qthelpers.forms import FormDialog, TabbedMultiForm, FormName, SubForm
 from qthelpers.menus import registered_menu_actions, registered_menus, menu_item, MenuAction
 from qthelpers.shortcuts import get_icon, warning, v_layout, get_pixmap, create_button
 from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions, toolbar_item
@@ -32,6 +34,38 @@ class AboutWindow(QtGui.QDialog):
             widgets.append(edit)
         widgets.append(create_button(_('Close'), min_size=True, parent=self, connect=self.close))
         self.setLayout(v_layout(self, *widgets))
+
+
+class SettingsWindow(FormDialog):
+    verbose_name = _('Preferences')
+    text_cancel = None
+
+    class Settings(TabbedMultiForm):
+        class OtherSettings(SubForm):
+            verbose_name = FormName(_('Other settings'))
+            theme = ChoiceField(verbose_name=_('Graphical theme'), default='SnowIsh',
+                                choices=(('SnowIsh', _('SnowIsh')), ('Faenza', _('Faenza'))), )
+
+    @staticmethod
+    def load_settings():
+        values = {}
+        from qthelpers.preferences import preferences
+        if preferences.icon_theme_key:
+            values['theme'] = preferences[preferences.icon_theme_key]
+        return values
+
+    @staticmethod
+    def save_settings(values):
+        from qthelpers.preferences import preferences
+        if preferences.icon_theme_key:
+            preferences[preferences.icon_theme_key] = values['theme']
+
+    @classmethod
+    def settings(cls):
+        initial = cls.load_settings()
+        values = cls.process(initial=initial)
+        if values is not None:
+            cls.save_settings(values)
 
 
 class BaseMainWindow(QtGui.QMainWindow):
@@ -128,6 +162,7 @@ class BaseMainWindow(QtGui.QMainWindow):
 class SingleDocumentWindow(BaseMainWindow):
     document_known_extensions = _('Text files (*.txt);;HTML files (*.html *.htm)')
     base_max_recent_documents = 10
+    settings_class = SettingsWindow
 
     def __init__(self, filename=None):
         super().__init__()
@@ -146,13 +181,9 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_threads.append(auto_save)
 
     def closeEvent(self, event: QtCore.QEvent):
-        if self.current_document_is_modified:
-            ans = warning(_('The document has been modified'),
-                          _('The current document has been modified. Any change will be lost if you close it. '
-                            'Do you really want to continue?'))
-            if not ans:
-                event.ignore()
-                return
+        if self._is_modified():
+            event.ignore()
+            return
         self.unload_document()
         super().closeEvent(event)
         self.base_stop_threads = True
@@ -204,28 +235,37 @@ class SingleDocumentWindow(BaseMainWindow):
         self.base_window_title()
         self.create_document()
 
+    def _is_modified(self):
+        return self.current_document_is_modified and not warning(_('The document has been modified'),
+                                                                 _('The current document has been modified. '
+                                                                 'Any change will be lost if you close it. '
+                                                                 'Do you really want to continue?'))
+
     @menu_item(verbose_name=_('Open…'), menu=_('File'), shortcut='Ctrl+O')
     @toolbar_item(verbose_name=_('Open…'), icon='document-open')
     def base_open_document(self, filename=None):
+        if self._is_modified():
+            return False
         if not filename:
             # noinspection PyCallByClass
             (filename, selected_filter) = QtGui.QFileDialog.getOpenFileName(p(self), _('Please select a file'),
                                                                             application.GlobalInfos.last_open_folder,
                                                                             self.document_known_extensions)
             if not filename:
-                return
+                return False
             application.GlobalInfos.last_open_folder = os.path.dirname(filename)
         if not self.is_valid_document(filename):
             warning(_('Invalid document'), _('Unable to open document %(filename)s.') %
                     {'filename': os.path.basename(filename)},
                     only_ok=True)
-            return
+            return False
         self.unload_document()
         self.current_document_filename = filename
         self.current_document_is_modified = False
         self.base_window_title()
         self.base_add_recent_filename()
         self.load_document()
+        return True
 
     @menu_item(verbose_name=_('Open recent…'), menu=_('File'), submenu=True)
     def base_open_recent(self):
@@ -244,7 +284,9 @@ class SingleDocumentWindow(BaseMainWindow):
 
     @menu_item(verbose_name=_('Close document'), menu=_('File'), sep=True, shortcut='Ctrl+W')
     def base_close_document(self):
-        self.close()
+        if self._is_modified():
+            return False
+        return self.close()
 
     @menu_item(verbose_name=_('Save document'), menu=_('File'), shortcut='Ctrl+S')
     @toolbar_item(verbose_name=_('Open…'), icon='document-save')
@@ -257,13 +299,15 @@ class SingleDocumentWindow(BaseMainWindow):
                                                                             application.GlobalInfos.last_save_folder,
                                                                             filter=self.document_known_extensions)
             if not filename:
-                return
+                return False
             application.GlobalInfos.last_save_folder = os.path.dirname(filename)
             self.current_document_filename = filename
-        self.save_document()
+        if not self.save_document():
+            return False
         self.current_document_is_modified = False
         self.base_window_title()
         self.base_add_recent_filename()
+        return True
 
     @menu_item(verbose_name=_('Save as…'), menu=_('File'))
     def base_save_document_as(self):
@@ -272,13 +316,15 @@ class SingleDocumentWindow(BaseMainWindow):
                                                                         application.GlobalInfos.last_save_folder,
                                                                         filter=self.document_known_extensions)
         if not filename:
-            return
+            return False
         application.GlobalInfos.last_save_folder = os.path.dirname(filename)
         self.current_document_filename = filename
-        self.save_document()
-        self.current_document_is_modified = False
-        self.base_window_title()
-        self.base_add_recent_filename()
+        if self.save_document():
+            self.current_document_is_modified = False
+            self.base_window_title()
+            self.base_add_recent_filename()
+            return True
+        return False
 
     @menu_item(verbose_name=_('New window'), menu=_('Window'))
     def base_new_window(self):
@@ -288,6 +334,10 @@ class SingleDocumentWindow(BaseMainWindow):
     @menu_item(verbose_name=_('About'), menu=_('Help'))
     def base_about(self):
         application.about()
+
+    @menu_item(verbose_name=_('Preferences…'), menu=_('Help'))
+    def base_settings(self):
+        self.settings_class.settings()
 
     def base_add_recent_filename(self):
         new_filename = self.current_document_filename

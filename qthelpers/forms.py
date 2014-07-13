@@ -124,6 +124,7 @@ class SubForm(Form):
 
 class MultiForm(object):
     verbose_name = None  # FormName('')
+    group_subforms = True
 
     def __init__(self, initial=None):
         """

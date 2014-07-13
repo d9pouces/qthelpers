@@ -6,7 +6,7 @@ import sys
 import unicodedata
 
 from qthelpers.exceptions import InvalidValueException
-from qthelpers.fields import FieldGroup
+from qthelpers.fields import FieldGroup, Field
 
 __author__ = 'flanker'
 
@@ -60,11 +60,19 @@ class Preferences(object):
 
     def __init__(self):
         self._sections = {}
+        fields_by_section = {}
         for cls in self.__class__.__mro__:
             for section_name, section_class in cls.__dict__.items():
-                if isinstance(section_class, type) and issubclass(section_class, Section) and section_name not in \
-                        self._sections:
-                    self._sections[section_name] = section_class()
+                if not isinstance(section_class, type) or not issubclass(section_class, Section):
+                    continue
+                fields_by_section.setdefault(section_name, {})
+                for field_name, field in section_class.__dict__.items():
+                    if not isinstance(field, Field) or field_name in fields_by_section[section_name]:
+                        continue
+                    fields_by_section[section_name][field_name] = field
+        for section_name, fields in fields_by_section.items():
+            merged_cls = type(section_name, (Section, ), fields)
+            self._sections[section_name] = merged_cls()
         global_dict[preferences_key] = self
 
     def __getitem__(self, item: str):

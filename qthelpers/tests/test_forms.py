@@ -18,8 +18,8 @@ __author__ = 'flanker'
 class SampleApplication(BaseApplication):
     verbose_name = 'Sample Application'
     application_version = '0.1'
-    description_icon = 'resources/icons/ToolbarDocumentsFolderIcon.png'
-    systemtray_icon = 'resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'browser'
+    systemtray_icon = 'browser'
 
     @menu_item
     def test_systray(self):
@@ -51,10 +51,10 @@ class SampleFormDialog(FormDialog):
 
 
 class SampleBaseWindows(BaseMainWindow):
-    description_icon = 'resources/icons/ToolbarDocumentsFolderIcon.png'
+    description_icon = 'browser'
 
     @menu_item(menu='TestMenu', verbose_name='TestMenuItem')
-    @toolbar_item(icon='resources/icons/ToolbarDocumentsFolderIcon.png')
+    @toolbar_item(icon='browser')
     def test_menu_1(self):
         print('test_menu_1')
 

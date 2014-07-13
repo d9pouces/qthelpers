@@ -115,7 +115,7 @@ class SingleDocumentApplication(BaseApplication):
         last_save_folder = fields.FilepathField(default=os.path.expanduser('~'))
         last_documents = fields.ListField(default=[])
         auto_save_interval = fields.IntegerField(default=0, min_value=0)
-        icon_theme = 'SnowIsh'
+        icon_theme = fields.CharField(default='SnowIsh')
 
 
 if __name__ == '__main__':

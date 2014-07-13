@@ -52,7 +52,7 @@ def __get_picture(picture_name, cache_dict, picture_class):
             fullpath = pkg_resources.resource_filename(modname, filename)
             break
     else:
-        raise FileNotFoundError
+        raise FileNotFoundError(picture_name)
     icon = picture_class(fullpath)
     cache_dict[picture_name] = icon
     return icon
