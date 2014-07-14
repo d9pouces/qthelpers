@@ -147,16 +147,16 @@ class BaseMainWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.central_widget())
         self._generic_signal.connect(self._generic_slot)
         # restore state and geometry
-        cls_name = self.__class__.__name__
         # noinspection PyBroadException
         try:
+            cls_name = self.__class__.__name__
             if cls_name in application['GlobalInfos/main_window_geometries']:
-                application['GlobalInfos/main_window_geometries'][cls_name].encode('utf-8')
-                geometry = base64.b64decode(application['GlobalInfos/main_window_geometries'][cls_name].encode('utf-8'))
+                geometry_str = application['GlobalInfos/main_window_geometries'][cls_name].encode('utf-8')
+                geometry = base64.b64decode(geometry_str)
                 self.restoreGeometry(geometry)
             if cls_name in application['GlobalInfos/main_window_states']:
-                application['GlobalInfos/main_window_states'][cls_name].encode('utf-8')
-                state = base64.b64decode(application['GlobalInfos/main_window_states'][cls_name].encode('utf-8'))
+                state_str = application['GlobalInfos/main_window_states'][cls_name].encode('utf-8')
+                state = base64.b64decode(state_str)
                 self.restoreState(state)
         except Exception:
             pass
@@ -229,10 +229,10 @@ class SingleDocumentWindow(BaseMainWindow):
             event.ignore()
             return
         self.unload_document()
-        super().closeEvent(event)
         self.base_stop_threads = True
         for thread in self.base_threads:
             thread.join()
+        super().closeEvent(event)
 
     def base_set_sb_indicator(self, key, icon_name=None, message=None):
         if key not in self._indicators:
