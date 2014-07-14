@@ -19,6 +19,7 @@ class BaseDock(QtGui.QDockWidget):
     def __init__(self, parent=None):
         QtGui.QDockWidget.__init__(self, str(self.verbose_name), p(parent))
         self.parent_window = weakref.ref(parent)
+        self.setObjectName(self.__class__.__name__)
 
     def close(self):
         return self.hide()

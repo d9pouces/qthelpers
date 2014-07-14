@@ -385,6 +385,28 @@ class ListField(Field):
             raise InvalidValueException(_('Value must be a list of base JSON types'))
 
 
+class DictField(Field):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
+        if default is None:
+            default = {}
+        super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
+                         default=default)
+
+    def serialize(self, value: dict) -> dict:
+        return value
+
+    def deserialize(self, value: dict) -> dict:
+        return value
+
+    def check_base_type(self, value):
+        if not isinstance(value, dict):
+            raise InvalidValueException(_('Value must be a dict of standard JSON types'))
+        try:
+            json.dumps(value)
+        except TypeError:
+            raise InvalidValueException(_('Value must be a dict of standard JSON types'))
+
+
 class ChoiceField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
                  choices=None):

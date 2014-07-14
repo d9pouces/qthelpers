@@ -8,6 +8,13 @@ registered_toolbars = {}  # registered_menus[cls_name] = [Menu1, Menu2, …]
 registered_toolbar_actions = {}  # registered_actions[cls_name][menu] = [MenuItem1, MenuItem2, …]
 
 
+class BaseToolBar(QtGui.QToolBar):
+
+    def __init__(self, *args, **kwargs):
+        QtGui.QToolBar.__init__(self, *args, **kwargs)
+        self.setObjectName(self.windowTitle())
+
+
 class ToolbarAction(object):
     def __init__(self, method_name, verbose_name: str, toolbar: str=None, icon=None, sep: bool=False,
                  disabled: bool=False, shortcut: str=None, help_text: str=None, uid: str=None):

@@ -27,6 +27,10 @@ class BaseApplication(Preferences):
     systemtray_icon = None
     windows = {}
 
+    class GlobalInfos(Section):
+        main_window_states = fields.DictField()
+        main_window_geometries = fields.DictField()
+
     def __init__(self, args: list):
         super().__init__()
         self.load()  # load preferences
