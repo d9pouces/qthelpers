@@ -19,6 +19,10 @@ Sample application
 '''
 
 
+def change(group, widget, value):
+    print('value changed to ', value)
+
+
 class SampleApplication(SingleDocumentApplication):
     verbose_name = 'Sample Application'
     application_version = '0.1'
@@ -49,7 +53,7 @@ class SampleDock(FormDock):
 
 
 class SampleForm(Form):
-    str_value = CharField(default='my_str', verbose_name='String value')
+    str_value = CharField(default='my_str', verbose_name='String value', on_change=change)
 
     class Sub1(SubForm):
         verbose_name = FormName('simple box')
@@ -106,13 +110,14 @@ class SampleForm(Form):
 class SampleFormDialog(FormDialog):
     verbose_name = 'My sample dialog'
     description = 'A short description'
-    str_value = CharField(default='my_str', verbose_name='String value')
-    int_value = IntegerField(default=42, required=True, verbose_name='Integer value')
-    float_value = FloatField(default=10., required=True, verbose_name='Float value')
-    float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None')
+    str_value = CharField(default='my_str', verbose_name='String value:')
+    int_value = IntegerField(default=42, required=True, verbose_name='Integer value:')
+    float_value = FloatField(default=10., required=True, verbose_name='Float value:')
+    float_value_none = FloatField(default=10., required=False, verbose_name='Float value or None:')
     bool_value = BooleanField(default=True, verbose_name='Boolean value')
-    filename = FilepathField(verbose_name='A file path', required=False)
-    choices = ChoiceField(verbose_name='Some choices', choices=((1, 'example 1'), (2, 'example 2')))
+    bool_value2 = BooleanField(default=True, verbose_name='Boolean value2', disabled=True)
+    filename = FilepathField(verbose_name='A file path:', required=False)
+    choices = ChoiceField(verbose_name='Some choices:', choices=((1, 'example 1'), (2, 'example 2')))
 
 
 class SampleBaseWindows(BaseMainWindow):

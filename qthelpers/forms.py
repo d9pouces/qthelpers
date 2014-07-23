@@ -61,9 +61,35 @@ class BaseForm(FieldGroup):
                 widget = obj.get_widget(self, self)
                 self._widgets[obj.name] = widget
                 obj.set_widget_value(widget, self._values[obj.name])
-                if obj.verbose_name:
-                    layout.addWidget(QtGui.QLabel(obj.verbose_name, p(self)), row_offset + row_index, 0)
+                if obj.label:
+                    layout.addWidget(QtGui.QLabel(obj.label, p(self)), row_offset + row_index, 0)
                 layout.addWidget(widget, row_offset + row_index, 1)
+
+    def _fill_form_layout(self, layout: QtGui.QFormLayout):
+        """ Fill a QGridLayout with all MultiForms and Field, in the right order
+        :param layout:
+        :return:
+        """
+        all_components = []
+        for multiform in self._multiforms.values():
+            all_components.append(multiform)
+        for field in self._fields.values():
+            all_components.append(field)
+        all_components.sort(key=self._sort_components)
+        for row_index, obj in enumerate(all_components):
+            if isinstance(obj, MultiForm):  # a MultiForm already is a QWidget
+                layout.addRow(obj)
+            elif isinstance(obj, SubForm):
+                widget = QtGui.QGroupBox(str(obj.verbose_name), p(self))
+                sub_layout = QtGui.QFormLayout(p(widget))
+                obj._fill_form_layout(sub_layout)
+                widget.setLayout(sub_layout)
+                layout.addRow(widget)
+            else:
+                widget = obj.get_widget(self, self)
+                self._widgets[obj.name] = widget
+                obj.set_widget_value(widget, self._values[obj.name])
+                layout.addRow(obj.label or '', widget)
 
     def is_valid(self):
         valid = True
@@ -86,6 +112,9 @@ class BaseForm(FieldGroup):
 
     def get_widget(self, field_name):  # TODO rechercher dans les multiforms
         return self._widgets[field_name]
+
+    def get_widgets(self):
+        return self._widgets
 
     def get_multiform(self, multiform_name):
         return self._multiforms[multiform_name]
@@ -193,8 +222,8 @@ class FormDialog(BaseForm, QtGui.QDialog):
         widgets = []
         if self.description:
             widgets.append(QtGui.QLabel(self.description, p(self)))
-        sub_layout = QtGui.QGridLayout(self)
-        self._fill_grid_layout(layout=sub_layout)
+        sub_layout = QtGui.QFormLayout(self)
+        self._fill_form_layout(layout=sub_layout)
         widgets.append(sub_layout)
         self._buttons = []
         if self.text_confirm:

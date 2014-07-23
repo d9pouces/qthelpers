@@ -39,6 +39,10 @@ class FilepathWidget(QtGui.QWidget):
     def setPalette(self, *args, **kwargs):
         self.line_editor.setPalette(*args, **kwargs)
 
+    def setDisabled(self, value):
+        self.line_editor.setDisabled(value)
+        self.select_button.setDisabled(value)
+
     def set_value(self, filename: str=None):
         self.filename = filename
         self.line_editor.setText(filename or '')

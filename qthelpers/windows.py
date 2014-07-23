@@ -189,12 +189,14 @@ class BaseMainWindow(QtGui.QMainWindow):
         del application.windows[self._window_id]
         super().closeEvent(event)
 
-    @staticmethod
-    def _generic_slot(arguments: list):
+    # noinspection PyMethodMayBeStatic
+    def _generic_slot(self, arguments: list):
         """
         Generic slot, connected to self.generic_signal
         :param arguments: list of [callable, args: list, kwargs: dict]
         :return: nothing
+
+        Never do it static! Segfault on the exit otherwise…
         """
         my_callable = arguments[0]
         my_callable(*(arguments[1]), **(arguments[2]))

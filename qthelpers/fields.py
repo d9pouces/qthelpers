@@ -20,7 +20,7 @@ palette_invalid.setColor(QtGui.QPalette.Base, QtGui.QColor(207, 0, 0))
 class Field(object):
     _field_counter = itertools.count()
 
-    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None, on_change=None):
         self.verbose_name = verbose_name
         self.name = None
         self.help_text = help_text
@@ -30,7 +30,12 @@ class Field(object):
         validators.insert(0, self.check_base_type)
         self.validators = validators
         self.disabled = disabled
+        self.on_change = on_change
         self.group_field_order = next(Field._field_counter)
+
+    @property
+    def label(self):
+        return self.verbose_name
 
     def is_valid(self, value) -> bool:
         if self.validators is not None:
@@ -59,13 +64,17 @@ class Field(object):
     def set_widget_valid(self, widget, valid: bool, msg: str):
         raise NotImplementedError
 
+    def _on_change(self, on_change: callable, group, widget):
+        value = self.get_widget_value(widget)
+        on_change(group, widget, value)
+
 
 class IndexedButtonField(Field):
 
     def __init__(self, connect=None, legend=None, icon=None, verbose_name='', help_text=None, default=None,
-                 disabled=False, validators=None):
+                 disabled=False, validators=None, on_change=None):
         super().__init__(verbose_name=verbose_name, help_text=help_text, default=default, disabled=disabled,
-                         validators=validators)
+                         validators=validators, on_change=on_change)
         self.legend = legend
         self.icon = icon
         self.connect = connect
@@ -96,7 +105,7 @@ class IndexedButtonField(Field):
 
 class CharField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
-                 widget_validator=None, max_length=None, min_length=None):
+                 widget_validator=None, max_length=None, min_length=None, on_change=None):
         if validators is None:
             validators = []
         if min_length is not None:
@@ -109,7 +118,7 @@ class CharField(Field):
                 if value is not None and len(value) > max_length:
                     raise InvalidValueException(_('value must be at most %(m)d character long') % {'m': min_length})
             validators.append(valid_max)
-        super().__init__(verbose_name, help_text, default, disabled, validators)
+        super().__init__(verbose_name, help_text, default, disabled, validators, on_change=on_change)
         self.widget_validator = widget_validator
 
     def check_base_type(self, value):
@@ -129,6 +138,7 @@ class CharField(Field):
             editor.setToolTip(self.help_text)
         if self.widget_validator is not None:
             editor.setValidator(self.widget_validator)
+        editor.setDisabled(self.disabled)
         return editor
 
     def get_widget_value(self, widget):
@@ -143,7 +153,7 @@ class CharField(Field):
 
 class IntegerField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
-                 widget_validator=None, min_value=None, max_value=None, required=True):
+                 widget_validator=None, min_value=None, max_value=None, required=True, on_change=None):
         if validators is None:
             validators = []
         if min_value is not None:
@@ -158,7 +168,7 @@ class IntegerField(Field):
             validators.append(valid_max)
         if required:
             validators.insert(0, self.check_required)
-        super().__init__(verbose_name, help_text, default, disabled, validators)
+        super().__init__(verbose_name, help_text, default, disabled, validators, on_change=on_change)
         widget_validator = self.default_widget_validator(max_value, min_value, widget_validator)
         self.widget_validator = widget_validator
         self.required = required
@@ -178,6 +188,7 @@ class IntegerField(Field):
         if self.help_text is not None:
             editor.setToolTip(self.help_text)
         editor.setValidator(self.widget_validator)
+        editor.setDisabled(self.disabled)
         return editor
 
     def get_widget_value(self, widget) -> int:
@@ -266,9 +277,13 @@ class BooleanField(Field):
         return bool(value)
 
     def get_widget(self, field_group, parent=None):
-        editor = QtGui.QCheckBox(p(parent))
+        if self.verbose_name:
+            editor = QtGui.QCheckBox(self.verbose_name, p(parent))
+        else:
+            editor = QtGui.QCheckBox(p(parent))
         if self.help_text:
             editor.setToolTip(self.help_text)
+        editor.setDisabled(self.disabled)
         return editor
 
     def get_widget_value(self, widget):
@@ -284,21 +299,27 @@ class BooleanField(Field):
         if not isinstance(value, bool):
             raise InvalidValueException(_('Value must be a boolean'))
 
+    @property
+    def label(self):
+        return None
+
 
 class FilepathField(CharField):
     def __init__(self, verbose_name: str='', help_text: str=None, default: str=None, disabled: bool=False,
-                 validators: list=None, selection_filter: str=None, required=True):
+                 validators: list=None, selection_filter: str=None, required=True, on_change=None):
         if validators is None:
             validators = []
         if required:
             validators.insert(0, self.check_required)
         self.required = required
         super().__init__(verbose_name=verbose_name, help_text=help_text, default=default, disabled=disabled,
-                         validators=validators)
+                         validators=validators, on_change=on_change)
         self.selection_filter = selection_filter
 
     def get_widget(self, field_group, parent=None):
-        return FilepathWidget(selection_filter=self.selection_filter, parent=parent)
+        widget = FilepathWidget(selection_filter=self.selection_filter, parent=parent)
+        widget.setDisabled(self.disabled)
+        return widget
 
     @staticmethod
     def check_required(value):
@@ -317,7 +338,7 @@ class FilepathField(CharField):
 
 class ListField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
-                 base_type=None, min_length=None, max_length=None):
+                 base_type=None, min_length=None, max_length=None, on_change=None):
         self.min_length = min_length
         self.max_length = max_length
         self.base_type = base_type
@@ -336,7 +357,7 @@ class ListField(Field):
                     raise InvalidValueException(_('list must count at most %(m)d values') % {'m': min_length})
             validators.append(valid_max)
         super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
-                         default=default)
+                         default=default, on_change=on_change)
 
     def serialize(self, value: list) -> list:
         return value
@@ -351,6 +372,7 @@ class ListField(Field):
         elif self.base_type == float:
             regexp = r'(\?.\d+|\d+\.\d*)(,\?.\d+|,\d+\.\d)*'
         editor = QtGui.QLineEdit(p(parent))
+        editor.setDisabled(self.disabled)
         if self.help_text is not None:
             editor.setToolTip(self.help_text)
         if regexp is not None:
@@ -386,11 +408,11 @@ class ListField(Field):
 
 
 class DictField(Field):
-    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None, on_change=None):
         if default is None:
             default = {}
         super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
-                         default=default)
+                         default=default, on_change=on_change)
 
     def serialize(self, value: dict) -> dict:
         return value
@@ -409,9 +431,9 @@ class DictField(Field):
 
 class ChoiceField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False, validators=None,
-                 choices=None):
+                 choices=None, on_change=None):
         super().__init__(verbose_name=verbose_name, help_text=help_text, disabled=disabled, validators=validators,
-                         default=default)
+                         default=default, on_change=on_change)
         if choices is None:
             raise InvalidValueException(_('You must provide a list of tuples for ‘choices’ argument.'))
         self.choices = choices
@@ -426,6 +448,7 @@ class ChoiceField(Field):
         widget = QtGui.QComboBox(p(parent))
         for value, text_value in self.choices:
             widget.addItem(text_value, value)
+        widget.setDisabled(self.disabled)
         return widget
 
     def get_widget_value(self, widget: QtGui.QComboBox):

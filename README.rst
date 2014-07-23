@@ -37,3 +37,6 @@ Préférences de base :
     * position des docks
     * gestion des raccourcis claviers
     * apparence : Qt.ToolButtonStyle
+
+gestion de trigger simples :
+    on_modified

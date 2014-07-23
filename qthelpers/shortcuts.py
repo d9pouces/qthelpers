@@ -1,19 +1,19 @@
 # coding=utf-8
-from PySide import QtGui
+from PySide import QtGui, QtCore
 import pkg_resources
 from qthelpers.utils import p
 
 __author__ = 'flanker'
 
 
-def __generic_layout(parent, layout, args):
+def __generic_layout(parent, layout, extra_args, args):
     for arg in args:
         if isinstance(arg, QtGui.QLayout):
             sub_widget = QtGui.QWidget(p(parent))
             sub_widget.setLayout(arg)
-            layout.addWidget(sub_widget)
+            layout.addWidget(sub_widget, *extra_args)
         elif isinstance(arg, QtGui.QWidget):
-            layout.addWidget(arg)
+            layout.addWidget(arg, *extra_args)
     return layout
 
 
@@ -21,14 +21,19 @@ def v_layout(parent, *args, direction=None):
     layout = QtGui.QVBoxLayout(None)
     if direction is not None:
         layout.setDirection(direction)
-    return __generic_layout(parent, layout, args)
+    return __generic_layout(parent, layout, [], args)
 
 
 def h_layout(parent, *args, direction=None):
     layout = QtGui.QHBoxLayout(None)
-    if direction is not None:
+    extra_args = []
+    if direction == QtGui.QBoxLayout.RightToLeft:
         layout.setDirection(direction)
-    return __generic_layout(parent, layout, args)
+        extra_args = [0, QtCore.Qt.AlignRight]
+    __generic_layout(parent, layout, extra_args, args)
+    if direction == QtGui.QBoxLayout.RightToLeft:
+        layout.addStretch(1)
+    return layout
 
 
 __ICON_CACHE = {}
