@@ -1,16 +1,17 @@
 # coding=utf-8
+import threading
 from PySide import QtGui, QtCore
 import weakref
 
 from qthelpers.forms import BaseForm
 from qthelpers.shortcuts import v_layout
-from qthelpers.utils import p
+from qthelpers.utils import p, ThreadedCalls
 
 
 __author__ = 'flanker'
 
 
-class BaseDock(QtGui.QDockWidget):
+class BaseDock(QtGui.QDockWidget, ThreadedCalls):
     verbose_name = None
     menu = None
     shortcut = None
@@ -18,6 +19,7 @@ class BaseDock(QtGui.QDockWidget):
 
     def __init__(self, parent=None):
         QtGui.QDockWidget.__init__(self, str(self.verbose_name), p(parent))
+        ThreadedCalls.__init__(self)
         self.parent_window = weakref.ref(parent)
         self.setObjectName(self.__class__.__name__)
 
@@ -30,7 +32,7 @@ class FormDock(BaseForm, BaseDock):
 
     def __init__(self, initial=None, parent=None):
         BaseForm.__init__(self, initial=initial)
-        BaseDock.__init__(self, p(parent))
+        BaseDock.__init__(self, parent=p(parent))
         # widget creation
         widgets = []
         if self.description:

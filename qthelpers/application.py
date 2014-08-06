@@ -1,4 +1,5 @@
 #coding=utf-8
+from concurrent.futures import ThreadPoolExecutor
 import os
 
 from PySide import QtGui, QtCore
@@ -30,6 +31,7 @@ class BaseApplication(Preferences):
     class GlobalInfos(Section):
         main_window_states = fields.DictField()
         main_window_geometries = fields.DictField()
+        pool_thread_size = fields.IntegerField(default=20)
 
     def __init__(self, args: list):
         super().__init__()
@@ -39,6 +41,9 @@ class BaseApplication(Preferences):
         self.application = QtGui.QApplication(args)
         self.parent = QtGui.QWidget()
         global_dict[application_key] = self
+        # initialize thread pool executor
+        self.executor = QtCore.QThreadPool()
+        self.executor.setMaxThreadCount(self.GlobalInfos.pool_thread_size)
 
         # set some global stuff
         if self.description_icon:

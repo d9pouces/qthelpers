@@ -34,7 +34,6 @@ Trouver une solution pour l'ordre des menus
 Préférences de base :
     * position des fenêtres par type (taille et position)
     * gestion de la toolbar (boutons désactivés)
-    * position des docks
     * gestion des raccourcis claviers
     * apparence : Qt.ToolButtonStyle
 

@@ -6,7 +6,7 @@ from qthelpers.exceptions import InvalidValueException
 from qthelpers.fields import FieldGroup, IndexedButtonField, Field
 from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout
 from qthelpers.translation import ugettext as _
-from qthelpers.utils import p
+from qthelpers.utils import p, ThreadedCalls
 
 __author__ = 'flanker'
 
@@ -209,7 +209,7 @@ class MultiForm(object):
         return self._values
 
 
-class FormDialog(BaseForm, QtGui.QDialog):
+class FormDialog(BaseForm, QtGui.QDialog, ThreadedCalls):
     verbose_name = None
     description = None
     text_confirm = _('Yes')
@@ -218,6 +218,7 @@ class FormDialog(BaseForm, QtGui.QDialog):
     def __init__(self, initial=None, parent=None):
         QtGui.QDialog.__init__(self, p(parent))
         BaseForm.__init__(self, initial=initial)
+        ThreadedCalls.__init__(self)
         # widget creation
         widgets = []
         if self.description:

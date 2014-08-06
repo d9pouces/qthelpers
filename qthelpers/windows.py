@@ -16,7 +16,7 @@ from qthelpers.menus import registered_menu_actions, registered_menus, menu_item
 from qthelpers.shortcuts import get_icon, warning, v_layout, get_pixmap, create_button
 from qthelpers.toolbars import registered_toolbars, registered_toolbar_actions, toolbar_item, BaseToolBar
 from qthelpers.translation import ugettext as _
-from qthelpers.utils import p
+from qthelpers.utils import p, ThreadedCalls
 
 __author__ = 'flanker'
 
@@ -39,7 +39,8 @@ class AboutWindow(QtGui.QDialog):
 
 class SettingsWindow(FormDialog):
     verbose_name = _('Preferences')
-    text_cancel = None
+    text_cancel = _('Cancel')
+    text_confirm = _('Save settings')
 
     class Settings(TabbedMultiForm):
         class OtherSettings(SubForm):
@@ -69,15 +70,15 @@ class SettingsWindow(FormDialog):
             cls.save_settings(values)
 
 
-class BaseMainWindow(QtGui.QMainWindow):
+class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
     description_icon = None
     verbose_name = _('Main application window')
     docks = []  # list of subclasses of qthelpers.docks.BaseDock
     _window_counter = itertools.count()
-    _generic_signal = QtCore.Signal(list)
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, p(parent))
+        ThreadedCalls.__init__(self)
 
         self._window_id = next(BaseMainWindow._window_counter)
         self._docks = {}
@@ -145,7 +146,6 @@ class BaseMainWindow(QtGui.QMainWindow):
             self.setWindowIcon(get_icon(self.description_icon))
 
         self.setCentralWidget(self.central_widget())
-        self._generic_signal.connect(self._generic_slot)
         # restore state and geometry
         # noinspection PyBroadException
         try:
@@ -160,7 +160,6 @@ class BaseMainWindow(QtGui.QMainWindow):
                 self.restoreState(state)
         except Exception:
             pass
-
         self.adjustSize()
         self.raise_()
 
@@ -176,33 +175,19 @@ class BaseMainWindow(QtGui.QMainWindow):
         raise NotImplementedError
 
     def closeEvent(self, event):
+        cls_name = self.__class__.__name__
         state = self.saveState()
         state = bytes(state.data())
         str_state = base64.b64encode(state).decode('utf-8')  # automatically save window state
         """:type: str"""
-        application['GlobalInfos/main_window_states'][self.__class__.__name__] = str_state
+        application['GlobalInfos/main_window_states'][cls_name] = str_state
         geometry = self.saveGeometry()
         geometry = bytes(geometry.data())
         str_geometry = base64.b64encode(geometry).decode('utf-8')  # automatically save window geometry
         """:type: str"""
-        application['GlobalInfos/main_window_geometries'][self.__class__.__name__] = str_geometry
+        application['GlobalInfos/main_window_geometries'][cls_name] = str_geometry
         del application.windows[self._window_id]
         super().closeEvent(event)
-
-    # noinspection PyMethodMayBeStatic
-    def _generic_slot(self, arguments: list):
-        """
-        Generic slot, connected to self.generic_signal
-        :param arguments: list of [callable, args: list, kwargs: dict]
-        :return: nothing
-
-        Never do it static! Segfault on the exit otherwise…
-        """
-        my_callable = arguments[0]
-        my_callable(*(arguments[1]), **(arguments[2]))
-
-    def generic_call(self, my_callable, *args, **kwargs):
-        self._generic_signal.emit([my_callable, args, kwargs])
 
 
 class SingleDocumentWindow(BaseMainWindow):
@@ -270,7 +255,7 @@ class SingleDocumentWindow(BaseMainWindow):
                         return
                     time.sleep(1)
                 if self.current_document_filename:
-                    self.generic_call(self.base_save_document)
+                    self.signal_call(self.base_save_document)
 
     @menu_item(verbose_name=_('New document'), menu=_('File'), shortcut='Ctrl+N')
     @toolbar_item(verbose_name=_('New document'), icon='document-new')
