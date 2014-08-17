@@ -36,6 +36,26 @@ def h_layout(parent, *args, direction=None):
     return layout
 
 
+def v_widget(parent, *args, direction=None):
+    layout = v_layout(parent, *args, direction=direction)
+    widget_ = QtGui.QWidget(p(parent))
+    widget_.setLayout(layout)
+    return widget_
+
+
+def h_widget(parent, *args, direction=None):
+    layout = h_layout(parent, *args, direction=direction)
+    widget_ = QtGui.QWidget(p(parent))
+    widget_.setLayout(layout)
+    return widget_
+
+
+def widget(parent, layout):
+    widget_ = QtGui.QWidget(p(parent))
+    widget_.setLayout(layout)
+    return widget_
+
+
 __ICON_CACHE = {}
 __PIXMAP_CACHE = {}
 
