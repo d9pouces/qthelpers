@@ -73,6 +73,7 @@ class SettingsWindow(FormDialog):
 class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
     description_icon = None
     verbose_name = _('Main application window')
+    menus = []  # list of menu names to create (allow to specify their order)
     docks = []  # list of subclasses of qthelpers.docks.BaseDock
     _window_counter = itertools.count()
 
@@ -90,6 +91,8 @@ class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
         created_action_keys = set()
         supernames = [x.__name__.rpartition('.')[2] for x in self.__class__.__mro__]
         supernames.reverse()
+        for menu_name in self.menus:
+            defined_qmenus[menu_name] = menubar.addMenu(menu_name)
         for cls_name in supernames:
             for menu_name in registered_menus.get(cls_name, []):  # create all top-level menus
                 if menu_name not in defined_qmenus:
@@ -148,6 +151,7 @@ class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
         self.setCentralWidget(self.central_widget())
         # restore state and geometry
         # noinspection PyBroadException
+        self.adjustSize()
         try:
             cls_name = self.__class__.__name__
             if cls_name in application['GlobalInfos/main_window_geometries']:
@@ -158,9 +162,8 @@ class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
                 state_str = application['GlobalInfos/main_window_states'][cls_name].encode('utf-8')
                 state = base64.b64decode(state_str)
                 self.restoreState(state)
-        except Exception:
+        except ValueError:
             pass
-        self.adjustSize()
         self.raise_()
 
     def _base_swap_dock_display(self, dock_cls):
@@ -176,16 +179,16 @@ class BaseMainWindow(QtGui.QMainWindow, ThreadedCalls):
 
     def closeEvent(self, event):
         cls_name = self.__class__.__name__
-        state = self.saveState()
-        state = bytes(state.data())
-        str_state = base64.b64encode(state).decode('utf-8')  # automatically save window state
-        """:type: str"""
-        application['GlobalInfos/main_window_states'][cls_name] = str_state
         geometry = self.saveGeometry()
         geometry = bytes(geometry.data())
         str_geometry = base64.b64encode(geometry).decode('utf-8')  # automatically save window geometry
         """:type: str"""
         application['GlobalInfos/main_window_geometries'][cls_name] = str_geometry
+        state = self.saveState()
+        state = bytes(state.data())
+        str_state = base64.b64encode(state).decode('utf-8')  # automatically save window state
+        application['GlobalInfos/main_window_states'][cls_name] = str_state
+        """:type: str"""
         del application.windows[self._window_id]
         super().closeEvent(event)
 
@@ -401,33 +404,33 @@ class SingleDocumentWindow(BaseMainWindow):
                                      application.GlobalInfos.last_save_folder)
         self.setWindowTitle(title)
 
-    def is_valid_document(self, filename):
+    def is_valid_document(self, filename: str) -> bool:
         """ Check if filename is a valid document
         :return:
         """
         raise NotImplementedError
 
-    def load_document(self):
+    def load_document(self) -> bool:
         """ Load the document self.current_document_filename
         self.current_document_filename is set to None, self.current_document_is_modified is set to False
         :return: boolean if everything is ok
         """
         raise NotImplementedError
 
-    def unload_document(self):
+    def unload_document(self) -> bool:
         """ Unload the current loaded document (if it exists)
         :return:
         """
         raise NotImplementedError
 
-    def create_document(self):
+    def create_document(self) -> bool:
         """ Create a new blank document
         self.current_document_filename is set to None, self.current_document_is_modified is set to False
         :return:
         """
         raise NotImplementedError
 
-    def save_document(self):
+    def save_document(self) -> bool:
         """ Save the current loaded document (if it exists) into self.current_document_filename
         It's your responsibility to update self.current_document_is_modified to True
         :return: boolean if everything is ok

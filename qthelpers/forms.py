@@ -1,12 +1,15 @@
 # coding=utf-8
+import itertools
+
 import functools
 from PySide import QtCore, QtGui
-import itertools
+
 from qthelpers.exceptions import InvalidValueException
 from qthelpers.fields import FieldGroup, IndexedButtonField, Field
 from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p, ThreadedCalls
+
 
 __author__ = 'flanker'
 
@@ -27,6 +30,7 @@ class BaseForm(FieldGroup):
     def __init__(self, initial=None):
         FieldGroup.__init__(self, initial=initial)
         self._multiforms = {}
+        """:type: dict of [str, MultiForm|SubForm]"""
         self._widgets = {}
         # retrieve all MultiForm classes from class definitions
         for cls in self.__class__.__mro__:
@@ -35,6 +39,17 @@ class BaseForm(FieldGroup):
                                                     and not issubclass(subcls, SubForm)) or name in self._multiforms:
                     continue
                 self._multiforms[name] = subcls(initial=initial, parent=self)
+
+    def set_values(self, initial: dict) -> None:
+        for name, field in self._fields.items():
+            if name in initial:
+                widget = self._widgets[name]
+                field.set_widget_value(widget, initial[name])
+        for multiform in self._multiforms.values():
+            if isinstance(multiform, SubForm):
+                multiform.set_values(initial)
+            elif isinstance(multiform, MultiForm):
+                multiform.set_values(initial)
 
     def _fill_grid_layout(self, layout: QtGui.QGridLayout):
         """ Fill a QGridLayout with all MultiForms and Field, in the right order
@@ -139,7 +154,7 @@ class Form(BaseForm, QtGui.QWidget):
 
 
 class SubForm(Form):
-    verbose_name = None  # TabName(_('My Tab Name'))
+    verbose_name = None  # FormName(_('My Tab Name'))
     enabled = True
 
 
@@ -151,9 +166,43 @@ class SubForm(Form):
 #             field_str_1 = CharField()
 
 
+class FormSet(object):
+    verbose_name = None  # FormName('')
+    min_item_count = None  # mininum number of items
+    max_item_count = None  # maximum number of items
+    fixed_item_count = False  # if True, user cannot remove or add items
+
+    def __init__(self, initial=None):
+        """
+        :param initial: List of dictionnaries of initial values
+        :return:
+        """
+        """
+        :param initial: initial values, as a dictionnary {field_name: field_value}
+        :param index: index of this FieldGroup if there are several FieldGroup
+        """
+        if initial is None:
+            initial = []
+        self._fields = {}
+        # noinspection PyUnusedLocal
+        self._values = [{} for x in len(initial)]
+        fields = []
+        for cls in self.__class__.__mro__:
+            for field_name, field in cls.__dict__.items():
+                if not isinstance(field, Field) or field_name in self._fields:
+                    continue
+                self._fields[field_name] = field
+                field.name = field_name
+                for index, initial_dict in enumerate(initial):
+                    value = initial_dict.get(field_name, field.default)
+                    self._values[index][field_name] = value
+                fields.append((field.group_field_order, field_name))
+        fields.sort()
+        self._field_order = [f[1] for f in fields]
+
+
 class MultiForm(object):
     verbose_name = None  # FormName('')
-    group_subforms = True
 
     def __init__(self, initial=None):
         """
@@ -175,6 +224,10 @@ class MultiForm(object):
         for subform_index, (subform_name, subform) in enumerate(self._subforms_list):
             self.add_form(subform_index, subform_name, subform)
             self.set_form_enabled(subform_index, subform, bool(subform.enabled))
+
+    def set_values(self, initial: dict) -> None:
+        for subform in self._subforms_list:
+            subform.set_values(initial)
 
     def __getattribute__(self, item: str):
         if not item.startswith('_') and item in self._subforms_by_name:

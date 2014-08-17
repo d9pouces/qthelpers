@@ -7,7 +7,7 @@ from qthelpers.exceptions import InvalidValueException
 from qthelpers.shortcuts import create_button
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
-from qthelpers.widgets import FilepathWidget
+from qthelpers.widgets import FilepathWidget, ColorWidget
 
 __author__ = 'flanker'
 
@@ -149,6 +149,15 @@ class CharField(Field):
 
     def set_widget_valid(self, widget, valid: bool, msg: str):
         widget.setPalette(palette_valid if valid else palette_invalid)
+
+
+class TextField(CharField):
+    def get_widget(self, field_group, parent=None):
+        editor = QtGui.QTextEdit(p(parent))
+        if self.help_text is not None:
+            editor.setToolTip(self.help_text)
+        editor.setDisabled(self.disabled)
+        return editor
 
 
 class IntegerField(Field):
@@ -333,6 +342,37 @@ class FilepathField(CharField):
         widget.setPalette(palette_valid if valid else palette_invalid)
 
     def set_widget_value(self, widget: FilepathWidget, value: str):
+        widget.set_value(value)
+
+
+class ColorField(CharField):
+    def __init__(self, verbose_name: str='', help_text: str=None, default: str=None, disabled: bool=False,
+                 validators: list=None, required=True, on_change=None):
+        if validators is None:
+            validators = []
+        if required:
+            validators.insert(0, self.check_required)
+        self.required = required
+        super().__init__(verbose_name=verbose_name, help_text=help_text, default=default, disabled=disabled,
+                         validators=validators, on_change=on_change)
+
+    def get_widget(self, field_group, parent=None):
+        widget = ColorWidget(parent=parent)
+        widget.setDisabled(self.disabled)
+        return widget
+
+    @staticmethod
+    def check_required(value):
+        if value is None:
+            raise InvalidValueException(_('no value provided'))
+
+    def get_widget_value(self, widget: ColorWidget):
+        return widget.get_value()
+
+    def set_widget_valid(self, widget: ColorWidget, valid: bool, msg: str):
+        widget.setPalette(palette_valid if valid else palette_invalid)
+
+    def set_widget_value(self, widget: ColorWidget, value: str):
         widget.set_value(value)
 
 
