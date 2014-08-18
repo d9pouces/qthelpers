@@ -77,7 +77,9 @@ class BaseForm(FieldGroup):
                 self._widgets[obj.name] = widget
                 obj.set_widget_value(widget, self._values[obj.name])
                 if obj.label:
-                    layout.addWidget(QtGui.QLabel(obj.label, p(self)), row_offset + row_index, 0)
+                    label = QtGui.QLabel(obj.label, p(self))
+                    label.setDisabled(obj.disabled)
+                    layout.addWidget(label, row_offset + row_index, 0)
                 layout.addWidget(widget, row_offset + row_index, 1)
 
     def _fill_form_layout(self, layout: QtGui.QFormLayout):
