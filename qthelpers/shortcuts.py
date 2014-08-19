@@ -100,7 +100,7 @@ def get_theme_icon(name, icon_name):
 
 
 def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=None, help_text: str=None,
-                  flat: bool=False, parent=None):
+                  flat: bool=False, parent=None, default=False):
     if isinstance(icon, str):
         button = QtGui.QPushButton(get_icon(icon), legend, p(parent))
     elif icon:
@@ -111,6 +111,8 @@ def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=
         button.setFixedSize(button.minimumSizeHint())
     if help_text:
         button.setToolTip(help_text)
+    if default:
+        button.setDefault(True)
     button.setFlat(flat)
     if connect is not None:
         # noinspection PyUnresolvedReferences
