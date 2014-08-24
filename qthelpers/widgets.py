@@ -12,6 +12,19 @@ from qthelpers.utils import p
 __author__ = 'flanker'
 
 
+class Button(QtGui.QPushButton):
+    def __init__(self, parent, connect, *args, **kwargs):
+        QtGui.QPushButton.__init__(self, parent)
+        self.connected_function = connect
+        self.args = args
+        self.kwargs = kwargs
+        # noinspection PyUnresolvedReferences
+        self.clicked.connect(self.button_clicked)
+
+    def button_clicked(self):
+        self.connected_function(*self.args, **self.kwargs)
+
+
 class FilepathWidget(QtGui.QWidget):
     def __init__(self, filename: str=None, selection_filter: str=None, parent: QtGui.QWidget=None):
         self.selection_filter = selection_filter

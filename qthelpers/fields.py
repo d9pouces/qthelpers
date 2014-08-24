@@ -4,10 +4,10 @@ import json
 from PySide import QtGui, QtCore
 import itertools
 from qthelpers.exceptions import InvalidValueException
-from qthelpers.shortcuts import create_button
+from qthelpers.shortcuts import create_button, get_icon
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
-from qthelpers.widgets import FilepathWidget, ColorWidget
+from qthelpers.widgets import FilepathWidget, ColorWidget, Button
 
 __author__ = 'flanker'
 
@@ -89,9 +89,10 @@ class IndexedButtonField(Field):
         return None
 
     def get_widget(self, field_group, parent=None):
-        connect = functools.partial(self.connect, index=field_group.index)
+        value = field_group
+        connect = functools.partial(self.connect, value)
         return create_button(self.legend, icon=self.icon, min_size=True, flat=True, help_text=self.help_text,
-                             connect=connect, parent=parent)
+                             connect=connect, parent=p(parent))
 
     def get_widget_value(self, widget):
         return None
@@ -101,6 +102,21 @@ class IndexedButtonField(Field):
 
     def set_widget_valid(self, widget, valid: bool, msg: str):
         pass
+
+
+class ButtonField(IndexedButtonField):
+
+    def get_widget(self, field_group, parent=None):
+        button = Button(p(parent), self.connect, field_group)
+        if isinstance(self.icon, str):
+            button.setIcon(get_icon(self.icon))
+        if self.legend:
+            button.setText(self.legend)
+        button.setFixedSize(button.minimumSizeHint())
+        if self.help_text:
+            button.setToolTip(self.help_text)
+        button.setFlat(True)
+        return button
 
 
 class CharField(Field):
@@ -138,6 +154,38 @@ class CharField(Field):
             editor.setToolTip(self.help_text)
         if self.widget_validator is not None:
             editor.setValidator(self.widget_validator)
+        editor.setDisabled(self.disabled)
+        return editor
+
+    def get_widget_value(self, widget):
+        return widget.text()
+
+    def set_widget_value(self, widget, value: str):
+        widget.setText(value)
+
+    def set_widget_valid(self, widget, valid: bool, msg: str):
+        widget.setPalette(palette_valid if valid else palette_invalid)
+
+
+class LabelField(Field):
+    def __init__(self, verbose_name='', help_text=None, default=None, disabled=False):
+        super().__init__(verbose_name, help_text, default, disabled, validators=[], on_change=None)
+
+    def check_base_type(self, value):
+        if isinstance(value, str):
+            return
+        raise InvalidValueException(_('value must be a string'))
+
+    def serialize(self, value) -> str:
+        return value
+
+    def deserialize(self, value: str):
+        return value
+
+    def get_widget(self, field_group, parent=None):
+        editor = QtGui.QLabel(p(parent))
+        if self.help_text is not None:
+            editor.setToolTip(self.help_text)
         editor.setDisabled(self.disabled)
         return editor
 

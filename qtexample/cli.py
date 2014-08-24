@@ -5,7 +5,8 @@ import time
 from qthelpers.application import application, SingleDocumentApplication
 from qthelpers.docks import FormDock
 from qthelpers.fields import BooleanField, FloatField, IntegerField, CharField, FilepathField, ChoiceField
-from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm, StackedMultiForm, ToolboxMultiForm
+from qthelpers.forms import FormDialog, Form, SubForm, FormName, TabbedMultiForm, StackedMultiForm, ToolboxMultiForm, \
+    Formset
 from qthelpers.menus import MenuAction, menu_item
 from qthelpers.toolbars import toolbar_item
 from qthelpers.windows import BaseMainWindow, SingleDocumentWindow
@@ -194,6 +195,52 @@ class SampleDocumentWindow(SingleDocumentWindow):
         return SampleForm()
 
 
+class SampleFormset(Formset):
+    add_button = True
+    remove_button = True
+    name = CharField(verbose_name='verbose_char', default='default_char')
+
+
+class FormSetWindow(SingleDocumentWindow):
+
+    def central_widget(self):
+        return SampleFormset(initial=[{}, {'name': 'toto_char'}])
+
+    def is_valid_document(self, filename):
+        """ Check if filename is a valid document
+        :return:
+        """
+        return True
+
+    def load_document(self):
+        """ Load the document self.current_document_filename
+        self.current_document_filename is set to None, self.current_document_is_modified is set to False
+        :return:
+        """
+        return True
+
+    def unload_document(self):
+        """ Unload the current loaded document (if it exists)
+        :return:
+        """
+        return True
+
+    def create_document(self):
+        """ Create a new blank document
+        self.current_document_filename is set to None, self.current_document_is_modified is set to False
+        :return:
+        """
+        pass
+
+    def save_document(self):
+        """ Save the current loaded document (if it exists) into self.current_document_filename
+        It's your responsibility to update self.current_document_is_modified to True
+        :return:
+        """
+        self.base_set_sb_indicator('key', message='NOT MODIFIED')
+        return True
+
+
 def main():
     argument_parser = argparse.ArgumentParser('qtexample', description='QtHelpers example')
     argument_parser.add_argument('--style', action='store', default=None,
@@ -222,4 +269,6 @@ def main():
     window.show()
     window2 = SampleDocumentWindow()
     window2.show()
+    window3 = FormSetWindow()
+    window3.show()
     application.exec_()
