@@ -1,12 +1,11 @@
 # coding=utf-8
 import itertools
 
-import functools
-from PySide import QtCore, QtGui
+from PySide import QtGui
 
 from qthelpers.exceptions import InvalidValueException
-from qthelpers.fields import FieldGroup, IndexedButtonField, Field, ButtonField
-from qthelpers.shortcuts import create_button, get_icon, h_layout, v_layout, warning
+from qthelpers.fields import FieldGroup, Field, ButtonField
+from qthelpers.shortcuts import create_button, h_layout, v_layout, warning
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p, ThreadedCalls
 
@@ -419,7 +418,14 @@ class Formset(QtGui.QTreeWidget):
         index = self.indexOfTopLevelItem(item)
         self.takeTopLevelItem(index)
 
-    def get_values(self):
+    def set_values(self, index: int, values: dict) -> None:
+        item = self.topLevelItem(index)
+        for column, field_name in enumerate(self._field_order):
+            field = self._fields[field_name]
+            widget = self.itemWidget(item, column)
+            field.set_widget_value(widget, values.get(field_name, field.default))
+
+    def get_values(self) -> list:
         values = []
         for index in range(self.topLevelItemCount()):
             item = self.topLevelItem(index)
