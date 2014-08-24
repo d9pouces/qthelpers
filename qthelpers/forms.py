@@ -333,8 +333,8 @@ class Formset(QtGui.QTreeWidget):
     min_number = None
     max_number = None
     show_headers = True  # display treewidget headers?
-    add_button = False  # display + / -
-    remove_button = False
+    show_add_button = False  # display + / -
+    show_remove_button = False
     add_help_text = ''
     remove_help_text = ''
 
@@ -369,13 +369,13 @@ class Formset(QtGui.QTreeWidget):
         fields.sort()
         self._field_order = [f[1] for f in fields]
         headers = [self._fields[field_name].verbose_name for field_name in self._field_order]
-        if self.remove_button:
+        if self.show_remove_button:
             key = '1__'
             self._field_order.insert(0, key)
             headers.insert(0, '')
             self._fields[key] = ButtonField(connect=self.remove_item, legend='', icon='list-remove',
                                             verbose_name='', help_text=self.remove_help_text, default=None)
-        if self.add_button:
+        if self.show_add_button:
             key = '0__'
             self._field_order.insert(0, key)
             headers.insert(0, '')
@@ -395,10 +395,14 @@ class Formset(QtGui.QTreeWidget):
         else:
             self.insertTopLevelItem(index, item)
         for column, field_name in enumerate(self._field_order):
+            print(column, field_name)
             field = self._fields[field_name]
             widget = field.get_widget(item, self)
+            print(widget)
             field.set_widget_value(widget, values.get(field_name, field.default))
+            print(item, column, widget)
             self.setItemWidget(item, column, widget)
+            print(self.itemWidget(item, column))
         for index in range(self.columnCount()):
             self.resizeColumnToContents(index)
         return item

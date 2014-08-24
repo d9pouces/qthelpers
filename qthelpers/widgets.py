@@ -4,7 +4,7 @@ import os
 from PySide import QtGui, QtCore
 from qthelpers.colors import get_color_from_str, COLOR_PATTERN, COLOR_RE
 
-from qthelpers.shortcuts import h_layout, create_button
+from qthelpers.shortcuts import h_layout, create_button, get_icon
 from qthelpers.translation import ugettext as _
 from qthelpers.utils import p
 
@@ -13,13 +13,27 @@ __author__ = 'flanker'
 
 
 class Button(QtGui.QPushButton):
-    def __init__(self, parent, connect, *args, **kwargs):
+    def __init__(self, parent, connect: callable=None, legend: str=None, min_size: bool=True, icon: str=None,
+                 flat: bool=False, tooltip: str=None):
         QtGui.QPushButton.__init__(self, parent)
+        if icon is not None:
+            self.setIcon(get_icon(icon))
+        if min_size:
+            if legend:
+                self.setText(legend)
+            size = self.minimumSizeHint()
+            if not legend:
+                size.setWidth(self.iconSize().width() + 4)
+            self.setFixedSize(size)
         self.connected_function = connect
-        self.args = args
-        self.kwargs = kwargs
-        # noinspection PyUnresolvedReferences
-        self.clicked.connect(self.button_clicked)
+        self.setFlat(flat)
+        if tooltip:
+            self.setToolTip(tooltip)
+        self.args = []
+        self.kwargs = {}
+        if connect:
+            # noinspection PyUnresolvedReferences
+            self.clicked.connect(self.button_clicked)
 
     def button_clicked(self):
         self.connected_function(*self.args, **self.kwargs)

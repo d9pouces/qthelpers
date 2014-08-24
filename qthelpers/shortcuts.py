@@ -2,6 +2,7 @@
 from PySide import QtGui, QtCore
 import pkg_resources
 from qthelpers.utils import p
+from qthelpers.translation import ugettext as _
 
 __author__ = 'flanker'
 
@@ -146,6 +147,21 @@ def information(title, message, only_ok=False):
     # noinspection PyTypeChecker
     return QtGui.QMessageBox.information(None, title, message, QtGui.QMessageBox.Ok, other_button) == \
         QtGui.QMessageBox.Ok
+
+
+def get_item(title: str, label: str, choices: list, initial: object=None) -> object:
+    from qthelpers.fields import ChoiceField
+    from qthelpers.forms import FormDialog
+
+    class Dialog(FormDialog):
+        verbose_name = title
+        text_confirm = _('Select')
+        value = ChoiceField(verbose_name=label, choices=choices, default=initial)
+
+    values = Dialog.process(initial={'value': initial}, parent=p(None))
+    if values is None:
+        return None
+    return values['value']
 
 
 if __name__ == '__main__':

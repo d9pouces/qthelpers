@@ -196,8 +196,8 @@ class SampleDocumentWindow(SingleDocumentWindow):
 
 
 class SampleFormset(Formset):
-    add_button = True
-    remove_button = True
+    show_add_button = True
+    show_remove_button = True
     name = CharField(verbose_name='verbose_char', default='default_char')
 
 

@@ -107,19 +107,9 @@ class IndexedButtonField(Field):
 class ButtonField(IndexedButtonField):
 
     def get_widget(self, field_group, parent=None):
-        button = Button(p(parent), self.connect, field_group)
-        if isinstance(self.icon, str):
-            button.setIcon(get_icon(self.icon))
-        if self.legend:
-            button.setText(self.legend)
-            button.setFixedSize(button.minimumSizeHint())
-        else:
-            size = button.minimumSizeHint()
-            size.setWidth(button.iconSize().width() + 4)
-            button.setFixedSize(size)
-        if self.help_text:
-            button.setToolTip(self.help_text)
-        button.setFlat(True)
+        button = Button(p(parent), self.connect, icon=self.icon, legend=self.legend, min_size=True, flat=True,
+                        tooltip=self.help_text)
+        button.args = [field_group]
         return button
 
 
@@ -190,7 +180,6 @@ class LabelField(Field):
         editor = QtGui.QLabel(p(parent))
         if self.help_text is not None:
             editor.setToolTip(self.help_text)
-        editor.setDisabled(self.disabled)
         return editor
 
     def get_widget_value(self, widget):
@@ -271,7 +260,7 @@ class IntegerField(Field):
     def default_widget_validator(max_value, min_value, widget_validator):
         if widget_validator is None:
             if min_value is None and max_value is None:
-                widget_validator = None
+                widget_validator = QtGui.QIntValidator(None)
             elif min_value is None:
                 widget_validator = QtGui.QIntValidator(-1000000, int(max_value), None)
             elif max_value is None:
@@ -319,7 +308,7 @@ class FloatField(IntegerField):
     def default_widget_validator(max_value, min_value, widget_validator):
         if widget_validator is None:
             if min_value is None and max_value is None:
-                widget_validator = None
+                widget_validator = QtGui.QDoubleValidator(None)
             elif min_value is None:
                 widget_validator = QtGui.QDoubleValidator(-1000000, int(max_value), 12, None)
             elif max_value is None:
