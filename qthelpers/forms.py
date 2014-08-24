@@ -386,9 +386,9 @@ class Formset(QtGui.QTreeWidget):
         else:
             self.header().close()
         for values in self._values:
-            self.__insert_item(values, index=None)
+            self.insert_item(values, index=None)
 
-    def __insert_item(self, values: dict, index: int or None=None):
+    def insert_item(self, values: dict, index: int or None=None) -> QtGui.QTreeWidgetItem:
         item = QtGui.QTreeWidgetItem(self, QtGui.QTreeWidgetItem.Type)
         if index is None:
             self.addTopLevelItem(item)
@@ -401,16 +401,17 @@ class Formset(QtGui.QTreeWidget):
             self.setItemWidget(item, column, widget)
         for index in range(self.columnCount()):
             self.resizeColumnToContents(index)
+        return item
 
-    def add_item(self, item):
+    def add_item(self, item: QtGui.QTreeWidgetItem) -> None:
         if self.max_number is not None and self.topLevelItemCount() >= self.max_number:
             warning(_('Unable to add item'), _('Unable to add more than %(s)d items.') % {'s': self.max_number},
                     only_ok=True)
             return
         index = self.indexOfTopLevelItem(item)
-        self.__insert_item(values={}, index=index)
+        self.insert_item(values={}, index=index)
 
-    def remove_item(self, item):
+    def remove_item(self, item: QtGui.QTreeWidgetItem) -> None:
         if self.min_number is not None and self.topLevelItemCount() <= self.min_number:
             warning(_('Unable to remove item'), _('At least %(s)d items are required.') % {'s': self.min_number},
                     only_ok=True)
