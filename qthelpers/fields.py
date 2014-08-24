@@ -112,7 +112,11 @@ class ButtonField(IndexedButtonField):
             button.setIcon(get_icon(self.icon))
         if self.legend:
             button.setText(self.legend)
-        button.setFixedSize(button.minimumSizeHint())
+            button.setFixedSize(button.minimumSizeHint())
+        else:
+            size = button.minimumSizeHint()
+            size.setWidth(button.iconSize().width() + 4)
+            button.setFixedSize(size)
         if self.help_text:
             button.setToolTip(self.help_text)
         button.setFlat(True)

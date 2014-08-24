@@ -400,6 +400,8 @@ class Formset(QtGui.QTreeWidget):
             widget = field.get_widget(item, self)
             field.set_widget_value(widget, values.get(field_name, field.default))
             self.setItemWidget(item, column, widget)
+        for index in range(self.columnCount()):
+            self.resizeColumnToContents(index)
 
     def add_item(self, item):
         if self.max_number is not None and self.topLevelItemCount() >= self.max_number:

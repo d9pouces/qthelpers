@@ -108,7 +108,10 @@ def create_button(legend: str='', icon: str=None, min_size: bool=False, connect=
     else:
         button = QtGui.QPushButton(legend, p(parent))
     if min_size:
-        button.setFixedSize(button.minimumSizeHint())
+        size = button.minimumSizeHint()
+        if not legend:
+            size.setWidth(button.iconSize().width() + 4)
+        button.setFixedSize(size)
     if help_text:
         button.setToolTip(help_text)
     if default:
