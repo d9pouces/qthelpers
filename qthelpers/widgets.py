@@ -23,7 +23,7 @@ class Button(QtGui.QPushButton):
                 self.setText(legend)
             size = self.minimumSizeHint()
             if not legend:
-                size.setWidth(self.iconSize().width() + 4)
+                size.setWidth(self.iconSize().width() + 8)
             self.setFixedSize(size)
         self.connected_function = connect
         self.setFlat(flat)

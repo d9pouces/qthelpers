@@ -1,7 +1,7 @@
 # coding=utf-8
 import itertools
 
-from PySide import QtGui
+from PySide import QtGui, QtCore
 
 from qthelpers.exceptions import InvalidValueException
 from qthelpers.fields import FieldGroup, Field, ButtonField
@@ -381,30 +381,30 @@ class Formset(QtGui.QTreeWidget):
             headers.insert(0, '')
             self._fields[key] = ButtonField(connect=self.add_item, legend='', icon='list-add',
                                             verbose_name='', help_text=self.add_help_text, default=None)
+        self.setIndentation(0)
         if self.show_headers:
             self.setHeaderLabels(headers)
-        else:
-            self.header().close()
+        self.header().close()
         for values in self._values:
             self.insert_item(values, index=None)
 
+    def set_column_widths(self, list_of_widths: list) -> None:
+        for column, width in enumerate(list_of_widths):
+            self.setColumnWidth(column, width)
+
     def insert_item(self, values: dict, index: int or None=None) -> QtGui.QTreeWidgetItem:
-        item = QtGui.QTreeWidgetItem(self, QtGui.QTreeWidgetItem.Type)
+        item = QtGui.QTreeWidgetItem([''] * len(self._field_order), QtGui.QTreeWidgetItem.Type)
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
         if index is None:
             self.addTopLevelItem(item)
         else:
             self.insertTopLevelItem(index, item)
         for column, field_name in enumerate(self._field_order):
-            print(column, field_name)
             field = self._fields[field_name]
             widget = field.get_widget(item, self)
-            print(widget)
+            """:type: QtGui.QWidget"""
             field.set_widget_value(widget, values.get(field_name, field.default))
-            print(item, column, widget)
             self.setItemWidget(item, column, widget)
-            print(self.itemWidget(item, column))
-        for index in range(self.columnCount()):
-            self.resizeColumnToContents(index)
         return item
 
     def add_item(self, item: QtGui.QTreeWidgetItem) -> None:
@@ -423,12 +423,15 @@ class Formset(QtGui.QTreeWidget):
         index = self.indexOfTopLevelItem(item)
         self.takeTopLevelItem(index)
 
-    def set_values(self, index: int, values: dict) -> None:
-        item = self.topLevelItem(index)
+    def set_item_values(self, item: QtGui.QTreeWidgetItem, values: dict) -> None:
         for column, field_name in enumerate(self._field_order):
             field = self._fields[field_name]
             widget = self.itemWidget(item, column)
             field.set_widget_value(widget, values.get(field_name, field.default))
+
+    def set_values(self, index: int, values: dict) -> None:
+        item = self.topLevelItem(index)
+        self.set_item_values(item, values)
 
     def get_values(self) -> list:
         values = []
