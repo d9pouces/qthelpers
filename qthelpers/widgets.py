@@ -124,6 +124,16 @@ class ColorWidget(QtGui.QWidget):
         return color
 
 
+class SearchEdit(QtGui.QLineEdit):
+    def __init__(self, *args, **kwargs):
+        QtGui.QLineEdit.__init__(self, *args, **kwargs)
+        self.setPlaceholderText(_('Search…'))
+        self.setStyleSheet("QLineEdit { padding: 2px; border-radius: 9px; border-color: #8e8e8e; };"
+                           "QLineEdit:focus { padding: 2px; border-radius: 9px; };")
+
+
+
+
 if __name__ == '__main__':
     import doctest
 

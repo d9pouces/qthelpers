@@ -382,9 +382,9 @@ class Formset(QtGui.QTreeWidget):
             self._fields[key] = ButtonField(connect=self.add_item, legend='', icon='list-add',
                                             verbose_name='', help_text=self.add_help_text, default=None)
         self.setIndentation(0)
-        if self.show_headers:
-            self.setHeaderLabels(headers)
-        self.header().close()
+        self.setHeaderLabels(headers)
+        if not self.show_headers:
+            self.header().close()
         for values in self._values:
             self.insert_item(values, index=None)
 

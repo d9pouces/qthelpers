@@ -161,6 +161,13 @@ class CharField(Field):
         widget.setPalette(palette_valid if valid else palette_invalid)
 
 
+class PasswordField(CharField):
+
+    def get_widget(self, field_group, parent=None):
+        editor = super().get_widget(field_group, parent=parent)
+        editor.setEchoMode(QtGui.QLineEdit.Password)
+        return editor
+
 class LabelField(Field):
     def __init__(self, verbose_name='', help_text=None, default=None, disabled=False):
         super().__init__(verbose_name, help_text, default, disabled, validators=[], on_change=None)
